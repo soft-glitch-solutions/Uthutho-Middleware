@@ -225,6 +225,27 @@ const StopsManagement = () => {
           </h1>
           <p className="text-muted-foreground">Manage transport stops and their locations</p>
         </div>
+      </div>
+
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList>
+          <TabsTrigger value="list" className="flex items-center gap-1.5">
+            <List className="w-4 h-4" />
+            List View
+          </TabsTrigger>
+          <TabsTrigger value="map" className="flex items-center gap-1.5">
+            <Map className="w-4 h-4" />
+            Map Explorer
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="map" className="mt-4">
+          <StopMapExplorer />
+        </TabsContent>
+
+        <TabsContent value="list" className="mt-4">
+      <div className="flex items-center justify-between">
+        <div></div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>

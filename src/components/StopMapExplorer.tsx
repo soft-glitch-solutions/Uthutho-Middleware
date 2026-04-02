@@ -7,9 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Target, Plus, Loader2, Navigation2, Trash2, Edit, Route, X } from 'lucide-react';
+import { MapPin, Target, Plus, Loader2, Navigation2, Trash2, Edit, Route, X, ChevronRight, Save, ArrowLeft } from 'lucide-react';
 
 interface Stop {
   id: string;
@@ -24,6 +26,8 @@ interface RouteLink {
   order_number: number;
   route_name: string;
   transport_type: string;
+  start_point: string;
+  end_point: string;
 }
 
 const StopMapExplorer = () => {
@@ -41,9 +45,9 @@ const StopMapExplorer = () => {
   const [newStopCost, setNewStopCost] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // Stop detail/edit state
+  // Sidebar state
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editName, setEditName] = useState('');
   const [editCost, setEditCost] = useState('');
@@ -54,24 +58,20 @@ const StopMapExplorer = () => {
 
   const { toast } = useToast();
 
-  // Fetch existing stops
   const fetchStops = useCallback(async () => {
     const { data } = await supabase.from('stops').select('id, name, latitude, longitude, cost');
     if (data) setStops(data);
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchStops();
-  }, [fetchStops]);
+  useEffect(() => { fetchStops(); }, [fetchStops]);
 
-  // Fetch linked routes for a stop
   const fetchLinkedRoutes = async (stopId: string) => {
     setLoadingRoutes(true);
     try {
       const { data, error } = await supabase
         .from('route_stops')
-        .select('route_id, order_number, routes(name, transport_type)')
+        .select('route_id, order_number, routes(name, transport_type, start_point, end_point)')
         .eq('stop_id', stopId)
         .order('order_number');
 
@@ -82,6 +82,8 @@ const StopMapExplorer = () => {
         order_number: rs.order_number,
         route_name: rs.routes?.name || 'Unknown Route',
         transport_type: rs.routes?.transport_type || 'unknown',
+        start_point: rs.routes?.start_point || '',
+        end_point: rs.routes?.end_point || '',
       }));
       setLinkedRoutes(routes);
     } catch {
@@ -91,15 +93,25 @@ const StopMapExplorer = () => {
     }
   };
 
-  // Handle clicking on a stop marker
   const handleStopClick = useCallback((stop: Stop) => {
     setSelectedStop(stop);
     setEditName(stop.name);
     setEditCost(stop.cost?.toString() || '');
     setIsEditMode(false);
-    setIsDetailOpen(true);
+    setSidebarOpen(true);
     fetchLinkedRoutes(stop.id);
+
+    // Zoom to the stop
+    if (mapInstance.current) {
+      mapInstance.current.setView([stop.latitude, stop.longitude], 15, { animate: true });
+    }
   }, []);
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    setSelectedStop(null);
+    setIsEditMode(false);
+  };
 
   // Initialize map
   useEffect(() => {
@@ -113,28 +125,22 @@ const StopMapExplorer = () => {
     });
 
     const map = L.map(mapRef.current).setView([-26.2041, 28.0473], 10);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
     }).addTo(map);
 
     markersLayer.current = L.layerGroup().addTo(map);
 
-    // Click on empty map area to select location for new stop
     map.on('click', (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
       setSelectedCoords({ lat, lng });
-
       if (selectedMarker.current) {
         selectedMarker.current.setLatLng(e.latlng);
       } else {
         const redIcon = L.icon({
           iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41],
+          iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
         });
         selectedMarker.current = L.marker(e.latlng, { icon: redIcon }).addTo(map);
         selectedMarker.current.bindPopup('Selected Location').openPopup();
@@ -144,13 +150,10 @@ const StopMapExplorer = () => {
     mapInstance.current = map;
     locateUser(map);
 
-    return () => {
-      map.remove();
-      mapInstance.current = null;
-    };
+    return () => { map.remove(); mapInstance.current = null; };
   }, []);
 
-  // Render stop markers with click handlers
+  // Render stop markers
   useEffect(() => {
     if (!markersLayer.current || loading) return;
     markersLayer.current.clearLayers();
@@ -158,66 +161,42 @@ const StopMapExplorer = () => {
     const blueIcon = L.icon({
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
+      iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
     });
 
     stops.forEach((stop) => {
       const marker = L.marker([stop.latitude, stop.longitude], { icon: blueIcon });
-      marker.bindPopup(
-        `<div style="min-width:140px">
-          <b>${stop.name}</b><br/>
-          <span style="font-size:11px;color:#888">Lat: ${stop.latitude.toFixed(6)}<br/>Lng: ${stop.longitude.toFixed(6)}</span>
-          <br/><span style="font-size:11px;color:#3b82f6;cursor:pointer" class="stop-detail-link">Click marker again to manage</span>
-        </div>`
-      );
-      marker.on('click', () => {
-        // First click opens popup, second click (or direct call) opens detail
-        if (marker.isPopupOpen()) {
-          handleStopClick(stop);
-        }
-      });
-      marker.on('popupopen', () => {
-        // After popup opens, clicking the marker again triggers detail
-        marker.once('click', () => handleStopClick(stop));
-      });
+      marker.bindTooltip(stop.name, { direction: 'top', offset: [0, -30] });
+      marker.on('click', () => handleStopClick(stop));
       markersLayer.current?.addLayer(marker);
     });
   }, [stops, loading, handleStopClick]);
 
+  // Invalidate map size when sidebar opens/closes
+  useEffect(() => {
+    setTimeout(() => {
+      mapInstance.current?.invalidateSize();
+    }, 350);
+  }, [sidebarOpen]);
+
   const locateUser = (map?: L.Map) => {
     const m = map || mapInstance.current;
     if (!m) return;
-
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
         m.setView([latitude, longitude], 15);
-
         const greenIcon = L.icon({
           iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41],
+          iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
         });
-
-        L.marker([latitude, longitude], { icon: greenIcon })
-          .addTo(m)
-          .bindPopup('📍 You are here')
-          .openPopup();
-
+        L.marker([latitude, longitude], { icon: greenIcon }).addTo(m).bindPopup('📍 You are here').openPopup();
         setLocating(false);
         toast({ title: 'Location Found', description: 'Map zoomed to your current location.' });
       },
-      () => {
-        setLocating(false);
-        toast({ title: 'Location Error', description: 'Could not get your location.', variant: 'destructive' });
-      },
+      () => { setLocating(false); toast({ title: 'Location Error', description: 'Could not get your location.', variant: 'destructive' }); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -225,90 +204,48 @@ const StopMapExplorer = () => {
   const handleCreateStop = async () => {
     if (!selectedCoords || !newStopName.trim()) return;
     setCreating(true);
-
     try {
       const { data, error } = await supabase
         .from('stops')
-        .insert({
-          name: newStopName.trim(),
-          latitude: selectedCoords.lat,
-          longitude: selectedCoords.lng,
-          cost: newStopCost ? parseFloat(newStopCost) : null,
-          image_url: 'https://images.caxton.co.za/wp-content/uploads/sites/10/2023/03/IMG_9281_07602-e1680074626338-780x470.jpg',
-        })
-        .select('id, name, latitude, longitude, cost')
-        .single();
-
+        .insert({ name: newStopName.trim(), latitude: selectedCoords.lat, longitude: selectedCoords.lng, cost: newStopCost ? parseFloat(newStopCost) : null, image_url: 'https://images.caxton.co.za/wp-content/uploads/sites/10/2023/03/IMG_9281_07602-e1680074626338-780x470.jpg' })
+        .select('id, name, latitude, longitude, cost').single();
       if (error) throw error;
-
       setStops((prev) => [...prev, data]);
-      setIsCreateOpen(false);
-      setNewStopName('');
-      setNewStopCost('');
-      setSelectedCoords(null);
-      if (selectedMarker.current) {
-        selectedMarker.current.remove();
-        selectedMarker.current = null;
-      }
-      toast({ title: 'Stop Created', description: `"${data.name}" has been added as a stop.` });
-    } catch {
-      toast({ title: 'Error', description: 'Failed to create stop.', variant: 'destructive' });
-    } finally {
-      setCreating(false);
-    }
+      setIsCreateOpen(false); setNewStopName(''); setNewStopCost(''); setSelectedCoords(null);
+      if (selectedMarker.current) { selectedMarker.current.remove(); selectedMarker.current = null; }
+      toast({ title: 'Stop Created', description: `"${data.name}" has been added.` });
+    } catch { toast({ title: 'Error', description: 'Failed to create stop.', variant: 'destructive' }); }
+    finally { setCreating(false); }
   };
 
   const handleEditStop = async () => {
     if (!selectedStop || !editName.trim()) return;
     setSaving(true);
-
     try {
-      const { error } = await supabase
-        .from('stops')
-        .update({
-          name: editName.trim(),
-          cost: editCost ? parseFloat(editCost) : null,
-        })
-        .eq('id', selectedStop.id);
-
+      const { error } = await supabase.from('stops').update({ name: editName.trim(), cost: editCost ? parseFloat(editCost) : null }).eq('id', selectedStop.id);
       if (error) throw error;
-
-      setStops((prev) =>
-        prev.map((s) =>
-          s.id === selectedStop.id ? { ...s, name: editName.trim(), cost: editCost ? parseFloat(editCost) : null } : s
-        )
-      );
-      setSelectedStop({ ...selectedStop, name: editName.trim(), cost: editCost ? parseFloat(editCost) : null });
+      const updated = { ...selectedStop, name: editName.trim(), cost: editCost ? parseFloat(editCost) : null };
+      setStops((prev) => prev.map((s) => s.id === selectedStop.id ? updated : s));
+      setSelectedStop(updated);
       setIsEditMode(false);
-      toast({ title: 'Stop Updated', description: `"${editName.trim()}" has been updated.` });
-    } catch {
-      toast({ title: 'Error', description: 'Failed to update stop.', variant: 'destructive' });
-    } finally {
-      setSaving(false);
-    }
+      toast({ title: 'Stop Updated', description: `"${editName.trim()}" updated.` });
+    } catch { toast({ title: 'Error', description: 'Failed to update stop.', variant: 'destructive' }); }
+    finally { setSaving(false); }
   };
 
   const handleDeleteStop = async () => {
     if (!selectedStop) return;
-    if (!confirm(`Are you sure you want to delete "${selectedStop.name}"? This will also remove all route links.`)) return;
+    if (!confirm(`Delete "${selectedStop.name}"? This removes all route links too.`)) return;
     setDeleting(true);
-
     try {
-      // Delete route_stops links first
       await supabase.from('route_stops').delete().eq('stop_id', selectedStop.id);
-
       const { error } = await supabase.from('stops').delete().eq('id', selectedStop.id);
       if (error) throw error;
-
       setStops((prev) => prev.filter((s) => s.id !== selectedStop.id));
-      setIsDetailOpen(false);
-      setSelectedStop(null);
+      closeSidebar();
       toast({ title: 'Stop Deleted', description: 'The stop has been removed.' });
-    } catch {
-      toast({ title: 'Error', description: 'Failed to delete stop.', variant: 'destructive' });
-    } finally {
-      setDeleting(false);
-    }
+    } catch { toast({ title: 'Error', description: 'Failed to delete stop.', variant: 'destructive' }); }
+    finally { setDeleting(false); }
   };
 
   return (
@@ -319,7 +256,7 @@ const StopMapExplorer = () => {
             <Navigation2 className="w-5 h-5 text-primary" />
             Map Explorer
           </h2>
-          <p className="text-sm text-muted-foreground">Click on a stop marker to manage it, or click the map to create a new stop</p>
+          <p className="text-sm text-muted-foreground">Click a stop marker to view details in the sidebar, or click the map to add a new stop</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => locateUser()} disabled={locating}>
           {locating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Target className="w-4 h-4 mr-1" />}
@@ -327,13 +264,176 @@ const StopMapExplorer = () => {
         </Button>
       </div>
 
-      <div className="relative rounded-lg overflow-hidden border shadow-sm">
-        {loading && (
-          <div className="absolute inset-0 z-[1000] bg-background/80 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      {/* Map + Sidebar layout */}
+      <div className="flex rounded-lg overflow-hidden border shadow-sm" style={{ height: '560px' }}>
+        {/* Map area */}
+        <div className="flex-1 relative">
+          {loading && (
+            <div className="absolute inset-0 z-[1000] bg-background/80 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          )}
+          <div ref={mapRef} className="w-full h-full" />
+
+          {/* Legend overlay */}
+          <div className="absolute bottom-3 left-3 z-[500] bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border shadow-sm">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                <span>Stops ({stops.length})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
+                <span>Selected</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'hsl(142, 71%, 45%)' }} />
+                <span>You</span>
+              </div>
+            </div>
           </div>
-        )}
-        <div ref={mapRef} className="w-full" style={{ height: '500px' }} />
+        </div>
+
+        {/* Right sidebar */}
+        <div
+          className={`bg-background border-l transition-all duration-300 ease-in-out overflow-hidden ${
+            sidebarOpen ? 'w-[340px]' : 'w-0'
+          }`}
+        >
+          {sidebarOpen && selectedStop && (
+            <div className="w-[340px] h-full flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-3 border-b bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span className="font-semibold text-sm truncate">
+                    {isEditMode ? 'Edit Stop' : selectedStop.name}
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={closeSidebar} className="h-7 w-7 p-0 flex-shrink-0">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <ScrollArea className="flex-1">
+                <div className="p-3 space-y-4">
+                  {isEditMode ? (
+                    /* Edit mode */
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Stop Name</Label>
+                        <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="transport-input h-9" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Cost (Optional)</Label>
+                        <Input type="number" step="0.01" value={editCost} onChange={(e) => setEditCost(e.target.value)} className="transport-input h-9" />
+                      </div>
+                      <div className="bg-muted/50 rounded-md p-2.5 text-xs font-mono">
+                        <p>Lat: {selectedStop.latitude.toFixed(6)}</p>
+                        <p>Lng: {selectedStop.longitude.toFixed(6)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleEditStop} disabled={saving || !editName.trim()} size="sm" className="transport-button-primary flex-1">
+                          {saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
+                          Save
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setIsEditMode(false)} className="flex-1">
+                          <ArrowLeft className="w-3 h-3 mr-1" />
+                          Back
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* View mode */
+                    <>
+                      {/* Stop info */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Details</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-muted/50 rounded-md p-2.5">
+                            <p className="text-muted-foreground text-[10px] mb-0.5">Coordinates</p>
+                            <p className="font-mono text-xs">{selectedStop.latitude.toFixed(4)}, {selectedStop.longitude.toFixed(4)}</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-md p-2.5">
+                            <p className="text-muted-foreground text-[10px] mb-0.5">Cost</p>
+                            <p className="text-sm font-medium">{selectedStop.cost ? `R${selectedStop.cost}` : '—'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)} className="flex-1 h-8 text-xs">
+                          <Edit className="w-3 h-3 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeleteStop}
+                          disabled={deleting}
+                          className="flex-1 h-8 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          {deleting ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Trash2 className="w-3 h-3 mr-1" />}
+                          Delete
+                        </Button>
+                      </div>
+
+                      <Separator />
+
+                      {/* Linked routes */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                          <Route className="w-3 h-3" />
+                          Linked Routes
+                        </h4>
+
+                        {loadingRoutes ? (
+                          <div className="flex items-center justify-center py-6">
+                            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : linkedRoutes.length === 0 ? (
+                          <div className="text-center py-4 bg-muted/30 rounded-md">
+                            <Route className="w-5 h-5 mx-auto mb-1 text-muted-foreground/50" />
+                            <p className="text-xs text-muted-foreground">No routes linked to this stop</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {linkedRoutes.map((route) => (
+                              <div key={route.route_id} className="bg-muted/40 rounded-lg p-2.5 space-y-1.5 hover:bg-muted/60 transition-colors">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm font-medium leading-tight">{route.route_name}</p>
+                                  <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 flex-shrink-0">
+                                    #{route.order_number}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                    {route.transport_type}
+                                  </Badge>
+                                </div>
+                                {(route.start_point || route.end_point) && (
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <span className="truncate">{route.start_point}</span>
+                                    <ChevronRight className="w-2.5 h-2.5 flex-shrink-0" />
+                                    <span className="truncate">{route.end_point}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                            <p className="text-[10px] text-muted-foreground text-center pt-1">
+                              {linkedRoutes.length} route{linkedRoutes.length !== 1 ? 's' : ''} linked
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Selected coordinates card */}
@@ -347,10 +447,7 @@ const StopMapExplorer = () => {
               </span>
               <Button variant="ghost" size="sm" onClick={() => {
                 setSelectedCoords(null);
-                if (selectedMarker.current) {
-                  selectedMarker.current.remove();
-                  selectedMarker.current = null;
-                }
+                if (selectedMarker.current) { selectedMarker.current.remove(); selectedMarker.current = null; }
               }}>
                 <X className="w-4 h-4" />
               </Button>
@@ -359,8 +456,8 @@ const StopMapExplorer = () => {
           <CardContent className="px-4 pb-3">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="text-sm space-y-1">
-                <p><span className="text-muted-foreground">Latitude:</span> <span className="font-mono font-medium">{selectedCoords.lat.toFixed(6)}</span></p>
-                <p><span className="text-muted-foreground">Longitude:</span> <span className="font-mono font-medium">{selectedCoords.lng.toFixed(6)}</span></p>
+                <p><span className="text-muted-foreground">Lat:</span> <span className="font-mono font-medium">{selectedCoords.lat.toFixed(6)}</span></p>
+                <p><span className="text-muted-foreground">Lng:</span> <span className="font-mono font-medium">{selectedCoords.lng.toFixed(6)}</span></p>
               </div>
               <Button onClick={() => setIsCreateOpen(true)} className="transport-button-primary">
                 <Plus className="w-4 h-4 mr-1" />
@@ -370,22 +467,6 @@ const StopMapExplorer = () => {
           </CardContent>
         </Card>
       )}
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-primary" />
-          <span>Existing Stops ({stops.length})</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-destructive" />
-          <span>Selected Location</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--accent))' }} />
-          <span>Your Location</span>
-        </div>
-      </div>
 
       {/* Create stop dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -414,114 +495,6 @@ const StopMapExplorer = () => {
               </Button>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="flex-1">Cancel</Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Stop detail / edit / delete dialog */}
-      <Dialog open={isDetailOpen} onOpenChange={(open) => { setIsDetailOpen(open); if (!open) setIsEditMode(false); }}>
-        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary" />
-              {isEditMode ? 'Edit Stop' : (selectedStop?.name || 'Stop Details')}
-            </DialogTitle>
-            <DialogDescription>
-              {isEditMode ? 'Update stop information' : 'View stop details, linked routes, and manage this stop'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {isEditMode ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Stop Name</Label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="transport-input" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cost (Optional)</Label>
-                  <Input type="number" step="0.01" value={editCost} onChange={(e) => setEditCost(e.target.value)} className="transport-input" />
-                </div>
-                <div className="bg-muted/50 rounded-md p-3 text-sm">
-                  <p><span className="text-muted-foreground">Lat:</span> {selectedStop?.latitude.toFixed(6)}</p>
-                  <p><span className="text-muted-foreground">Lng:</span> {selectedStop?.longitude.toFixed(6)}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleEditStop} disabled={saving || !editName.trim()} className="transport-button-primary flex-1">
-                    {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-                    Save Changes
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsEditMode(false)} className="flex-1">Cancel</Button>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Stop info */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="bg-muted/50 rounded-md p-3">
-                    <p className="text-muted-foreground text-xs mb-1">Coordinates</p>
-                    <p className="font-mono text-xs">{selectedStop?.latitude.toFixed(6)}, {selectedStop?.longitude.toFixed(6)}</p>
-                  </div>
-                  <div className="bg-muted/50 rounded-md p-3">
-                    <p className="text-muted-foreground text-xs mb-1">Cost</p>
-                    <p className="font-medium">{selectedStop?.cost ? `R${selectedStop.cost}` : 'Not set'}</p>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setIsEditMode(true)} className="flex-1">
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDeleteStop}
-                    disabled={deleting}
-                    className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                    Delete
-                  </Button>
-                </div>
-
-                {/* Linked routes */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold flex items-center gap-2">
-                    <Route className="w-4 h-4 text-primary" />
-                    Linked Routes
-                  </h3>
-                  {loadingRoutes ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : linkedRoutes.length === 0 ? (
-                    <p className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
-                      This stop is not linked to any routes.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {linkedRoutes.map((route) => (
-                        <div key={route.route_id} className="flex items-center justify-between bg-muted/50 rounded-md p-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">{route.route_name}</p>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">{route.transport_type}</Badge>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <Badge variant="outline" className="font-mono">
-                              Position #{route.order_number}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
           </div>
         </DialogContent>
       </Dialog>

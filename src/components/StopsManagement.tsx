@@ -551,6 +551,8 @@ const StopsManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

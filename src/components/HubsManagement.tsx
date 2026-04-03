@@ -536,6 +536,12 @@ const HubsManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="map">
+          <HubMapExplorer />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Plus, Edit, Trash2, Search, Map } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, Search, Map, List } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import MapSelector from './MapSelector';
+import HubMapExplorer from './HubMapExplorer';
 
 interface Hub {
   id: string;

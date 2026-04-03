@@ -8,125 +8,105 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Target, Plus, Loader2, Navigation2, Trash2, Edit, Route, X, ChevronRight, Save, ArrowLeft, Link } from 'lucide-react';
+import { MapPin, Target, Plus, Loader2, Navigation2, Trash2, Edit, Route, X, ChevronRight, Save, ArrowLeft } from 'lucide-react';
 
-interface Stop {
+interface Hub {
   id: string;
   name: string;
+  address: string | null;
   latitude: number;
   longitude: number;
-  cost: number | null;
+  transport_type: string | null;
+  image: string | null;
 }
 
-interface RouteLink {
-  route_id: string;
-  order_number: number;
-  route_name: string;
+interface HubRoute {
+  id: string;
+  name: string;
   transport_type: string;
   start_point: string;
   end_point: string;
+  cost: number;
 }
 
-interface AvailableRoute {
-  id: string;
-  name: string;
-  transport_type: string;
-}
-
-const StopMapExplorer = () => {
+const HubMapExplorer = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const markersLayer = useRef<L.LayerGroup | null>(null);
   const selectedMarker = useRef<L.Marker | null>(null);
 
-  const [stops, setStops] = useState<Stop[]>([]);
+  const [hubs, setHubs] = useState<Hub[]>([]);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Create sidebar
+  const [createSidebarOpen, setCreateSidebarOpen] = useState(false);
+  const [newHubName, setNewHubName] = useState('');
+  const [newHubAddress, setNewHubAddress] = useState('');
+  const [newHubTransportType, setNewHubTransportType] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // Create sidebar state
-  const [createSidebarOpen, setCreateSidebarOpen] = useState(false);
-  const [newStopName, setNewStopName] = useState('');
-  const [newStopCost, setNewStopCost] = useState('');
-  const [availableRoutes, setAvailableRoutes] = useState<AvailableRoute[]>([]);
-  const [selectedRouteToLink, setSelectedRouteToLink] = useState('');
-  const [selectedOrderNumber, setSelectedOrderNumber] = useState('');
-  const [routesToLink, setRoutesToLink] = useState<{ route_id: string; route_name: string; order_number: number }[]>([]);
-
-  // View sidebar state
-  const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
+  // View sidebar
+  const [selectedHub, setSelectedHub] = useState<Hub | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editCost, setEditCost] = useState('');
-  const [linkedRoutes, setLinkedRoutes] = useState<RouteLink[]>([]);
+  const [editAddress, setEditAddress] = useState('');
+  const [editTransportType, setEditTransportType] = useState('');
+  const [hubRoutes, setHubRoutes] = useState<HubRoute[]>([]);
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { toast } = useToast();
 
-  const fetchStops = useCallback(async () => {
-    const { data } = await supabase.from('stops').select('id, name, latitude, longitude, cost');
-    if (data) setStops(data);
+  const fetchHubs = useCallback(async () => {
+    const { data } = await supabase.from('hubs').select('id, name, address, latitude, longitude, transport_type, image');
+    if (data) setHubs(data);
     setLoading(false);
   }, []);
 
-  const fetchAvailableRoutes = async () => {
-    const { data } = await supabase.from('routes').select('id, name, transport_type').order('name');
-    if (data) setAvailableRoutes(data);
-  };
+  useEffect(() => { fetchHubs(); }, [fetchHubs]);
 
-  useEffect(() => { fetchStops(); fetchAvailableRoutes(); }, [fetchStops]);
-
-  const fetchLinkedRoutes = async (stopId: string) => {
+  const fetchHubRoutes = async (hubId: string) => {
     setLoadingRoutes(true);
     try {
       const { data, error } = await supabase
-        .from('route_stops')
-        .select('route_id, order_number, routes(name, transport_type, start_point, end_point)')
-        .eq('stop_id', stopId)
-        .order('order_number');
+        .from('routes')
+        .select('id, name, transport_type, start_point, end_point, cost')
+        .eq('hub_id', hubId)
+        .order('name');
 
       if (error) throw error;
-
-      const routes: RouteLink[] = (data || []).map((rs: any) => ({
-        route_id: rs.route_id,
-        order_number: rs.order_number,
-        route_name: rs.routes?.name || 'Unknown Route',
-        transport_type: rs.routes?.transport_type || 'unknown',
-        start_point: rs.routes?.start_point || '',
-        end_point: rs.routes?.end_point || '',
-      }));
-      setLinkedRoutes(routes);
+      setHubRoutes(data || []);
     } catch {
-      setLinkedRoutes([]);
+      setHubRoutes([]);
     } finally {
       setLoadingRoutes(false);
     }
   };
 
-  const handleStopClick = useCallback((stop: Stop) => {
-    setSelectedStop(stop);
-    setEditName(stop.name);
-    setEditCost(stop.cost?.toString() || '');
+  const handleHubClick = useCallback((hub: Hub) => {
+    setSelectedHub(hub);
+    setEditName(hub.name);
+    setEditAddress(hub.address || '');
+    setEditTransportType(hub.transport_type || '');
     setIsEditMode(false);
     setSidebarOpen(true);
     setCreateSidebarOpen(false);
-    fetchLinkedRoutes(stop.id);
+    fetchHubRoutes(hub.id);
 
     if (mapInstance.current) {
-      mapInstance.current.setView([stop.latitude, stop.longitude], 15, { animate: true });
+      mapInstance.current.setView([hub.latitude, hub.longitude], 15, { animate: true });
     }
   }, []);
 
   const closeSidebar = () => {
     setSidebarOpen(false);
-    setSelectedStop(null);
+    setSelectedHub(null);
     setIsEditMode(false);
   };
 
@@ -134,32 +114,13 @@ const StopMapExplorer = () => {
     if (!selectedCoords) return;
     setCreateSidebarOpen(true);
     setSidebarOpen(false);
-    setNewStopName('');
-    setNewStopCost('');
-    setRoutesToLink([]);
-    setSelectedRouteToLink('');
-    setSelectedOrderNumber('');
+    setNewHubName('');
+    setNewHubAddress('');
+    setNewHubTransportType('');
   };
 
   const closeCreateSidebar = () => {
     setCreateSidebarOpen(false);
-  };
-
-  const addRouteToLink = () => {
-    if (!selectedRouteToLink || !selectedOrderNumber) return;
-    const route = availableRoutes.find(r => r.id === selectedRouteToLink);
-    if (!route) return;
-    if (routesToLink.some(r => r.route_id === selectedRouteToLink)) {
-      toast({ title: 'Already added', description: 'This route is already in the list.', variant: 'destructive' });
-      return;
-    }
-    setRoutesToLink(prev => [...prev, { route_id: route.id, route_name: route.name, order_number: parseInt(selectedOrderNumber) }]);
-    setSelectedRouteToLink('');
-    setSelectedOrderNumber('');
-  };
-
-  const removeRouteToLink = (routeId: string) => {
-    setRoutesToLink(prev => prev.filter(r => r.route_id !== routeId));
   };
 
   // Initialize map
@@ -202,26 +163,25 @@ const StopMapExplorer = () => {
     return () => { map.remove(); mapInstance.current = null; };
   }, []);
 
-  // Render stop markers
+  // Render hub markers
   useEffect(() => {
     if (!markersLayer.current || loading) return;
     markersLayer.current.clearLayers();
 
-    const blueIcon = L.icon({
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    const orangeIcon = L.icon({
+      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
       shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
     });
 
-    stops.forEach((stop) => {
-      const marker = L.marker([stop.latitude, stop.longitude], { icon: blueIcon });
-      marker.bindTooltip(stop.name, { direction: 'top', offset: [0, -30] });
-      marker.on('click', () => handleStopClick(stop));
+    hubs.forEach((hub) => {
+      const marker = L.marker([hub.latitude, hub.longitude], { icon: orangeIcon });
+      marker.bindTooltip(hub.name, { direction: 'top', offset: [0, -30] });
+      marker.on('click', () => handleHubClick(hub));
       markersLayer.current?.addLayer(marker);
     });
-  }, [stops, loading, handleStopClick]);
+  }, [hubs, loading, handleHubClick]);
 
-  // Invalidate map size when sidebar opens/closes
   useEffect(() => {
     setTimeout(() => {
       mapInstance.current?.invalidateSize();
@@ -250,66 +210,63 @@ const StopMapExplorer = () => {
     );
   };
 
-  const handleCreateStop = async () => {
-    if (!selectedCoords || !newStopName.trim()) return;
+  const handleCreateHub = async () => {
+    if (!selectedCoords || !newHubName.trim()) return;
     setCreating(true);
     try {
       const { data, error } = await supabase
-        .from('stops')
-        .insert({ name: newStopName.trim(), latitude: selectedCoords.lat, longitude: selectedCoords.lng, cost: newStopCost ? parseFloat(newStopCost) : null, image_url: 'https://images.caxton.co.za/wp-content/uploads/sites/10/2023/03/IMG_9281_07602-e1680074626338-780x470.jpg' })
-        .select('id, name, latitude, longitude, cost').single();
+        .from('hubs')
+        .insert({
+          name: newHubName.trim(),
+          latitude: selectedCoords.lat,
+          longitude: selectedCoords.lng,
+          address: newHubAddress.trim() || null,
+          transport_type: newHubTransportType.trim() || null,
+        })
+        .select('id, name, address, latitude, longitude, transport_type, image')
+        .single();
       if (error) throw error;
-
-      // Link routes if any
-      if (routesToLink.length > 0) {
-        const routeStopInserts = routesToLink.map(r => ({
-          route_id: r.route_id,
-          stop_id: data.id,
-          order_number: r.order_number,
-        }));
-        await supabase.from('route_stops').insert(routeStopInserts);
-      }
-
-      setStops((prev) => [...prev, data]);
+      setHubs((prev) => [...prev, data]);
       closeCreateSidebar();
       setSelectedCoords(null);
       if (selectedMarker.current) { selectedMarker.current.remove(); selectedMarker.current = null; }
-      toast({ title: 'Stop Created', description: `"${data.name}" has been added${routesToLink.length > 0 ? ` and linked to ${routesToLink.length} route(s)` : ''}.` });
-    } catch { toast({ title: 'Error', description: 'Failed to create stop.', variant: 'destructive' }); }
+      toast({ title: 'Hub Created', description: `"${data.name}" has been added.` });
+    } catch { toast({ title: 'Error', description: 'Failed to create hub.', variant: 'destructive' }); }
     finally { setCreating(false); }
   };
 
-  const handleEditStop = async () => {
-    if (!selectedStop || !editName.trim()) return;
+  const handleEditHub = async () => {
+    if (!selectedHub || !editName.trim()) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from('stops').update({ name: editName.trim(), cost: editCost ? parseFloat(editCost) : null }).eq('id', selectedStop.id);
+      const { error } = await supabase.from('hubs').update({
+        name: editName.trim(),
+        address: editAddress.trim() || null,
+        transport_type: editTransportType.trim() || null,
+      }).eq('id', selectedHub.id);
       if (error) throw error;
-      const updated = { ...selectedStop, name: editName.trim(), cost: editCost ? parseFloat(editCost) : null };
-      setStops((prev) => prev.map((s) => s.id === selectedStop.id ? updated : s));
-      setSelectedStop(updated);
+      const updated = { ...selectedHub, name: editName.trim(), address: editAddress.trim() || null, transport_type: editTransportType.trim() || null };
+      setHubs((prev) => prev.map((h) => h.id === selectedHub.id ? updated : h));
+      setSelectedHub(updated);
       setIsEditMode(false);
-      toast({ title: 'Stop Updated', description: `"${editName.trim()}" updated.` });
-    } catch { toast({ title: 'Error', description: 'Failed to update stop.', variant: 'destructive' }); }
+      toast({ title: 'Hub Updated', description: `"${editName.trim()}" updated.` });
+    } catch { toast({ title: 'Error', description: 'Failed to update hub.', variant: 'destructive' }); }
     finally { setSaving(false); }
   };
 
-  const handleDeleteStop = async () => {
-    if (!selectedStop) return;
-    if (!confirm(`Delete "${selectedStop.name}"? This removes all route links too.`)) return;
+  const handleDeleteHub = async () => {
+    if (!selectedHub) return;
+    if (!confirm(`Delete "${selectedHub.name}"?`)) return;
     setDeleting(true);
     try {
-      await supabase.from('route_stops').delete().eq('stop_id', selectedStop.id);
-      const { error } = await supabase.from('stops').delete().eq('id', selectedStop.id);
+      const { error } = await supabase.from('hubs').delete().eq('id', selectedHub.id);
       if (error) throw error;
-      setStops((prev) => prev.filter((s) => s.id !== selectedStop.id));
+      setHubs((prev) => prev.filter((h) => h.id !== selectedHub.id));
       closeSidebar();
-      toast({ title: 'Stop Deleted', description: 'The stop has been removed.' });
-    } catch { toast({ title: 'Error', description: 'Failed to delete stop.', variant: 'destructive' }); }
+      toast({ title: 'Hub Deleted', description: 'The hub has been removed.' });
+    } catch { toast({ title: 'Error', description: 'Failed to delete hub.', variant: 'destructive' }); }
     finally { setDeleting(false); }
   };
-
-  const anySidebarOpen = sidebarOpen || createSidebarOpen;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -317,9 +274,9 @@ const StopMapExplorer = () => {
         <div>
           <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <Navigation2 className="w-5 h-5 text-primary" />
-            Map Explorer
+            Hub Map Explorer
           </h2>
-          <p className="text-sm text-muted-foreground">Click a stop marker to view details, or click the map to add a new stop</p>
+          <p className="text-sm text-muted-foreground">Click a hub marker to view details and linked routes, or click the map to add a new hub</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => locateUser()} disabled={locating}>
           {locating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Target className="w-4 h-4 mr-1" />}
@@ -327,9 +284,8 @@ const StopMapExplorer = () => {
         </Button>
       </div>
 
-      {/* Map + Sidebar layout */}
       <div className="flex rounded-lg overflow-hidden border shadow-sm" style={{ height: '560px' }}>
-        {/* Map area */}
+        {/* Map */}
         <div className="flex-1 relative">
           {loading && (
             <div className="absolute inset-0 z-[1000] bg-background/80 flex items-center justify-center">
@@ -338,12 +294,11 @@ const StopMapExplorer = () => {
           )}
           <div ref={mapRef} className="w-full h-full" />
 
-          {/* Legend overlay */}
           <div className="absolute bottom-3 left-3 z-[500] bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 border shadow-sm">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-primary" />
-                <span>Stops ({stops.length})</span>
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'hsl(30, 100%, 50%)' }} />
+                <span>Hubs ({hubs.length})</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
@@ -357,15 +312,15 @@ const StopMapExplorer = () => {
           </div>
         </div>
 
-        {/* View stop sidebar */}
+        {/* View hub sidebar */}
         <div className={`bg-background border-l transition-all duration-300 ease-in-out overflow-hidden ${sidebarOpen ? 'w-[340px]' : 'w-0'}`}>
-          {sidebarOpen && selectedStop && (
+          {sidebarOpen && selectedHub && (
             <div className="w-[340px] h-full flex flex-col">
               <div className="flex items-center justify-between p-3 border-b bg-muted/30">
                 <div className="flex items-center gap-2 min-w-0">
                   <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
                   <span className="font-semibold text-sm truncate">
-                    {isEditMode ? 'Edit Stop' : selectedStop.name}
+                    {isEditMode ? 'Edit Hub' : selectedHub.name}
                   </span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={closeSidebar} className="h-7 w-7 p-0 flex-shrink-0">
@@ -378,19 +333,23 @@ const StopMapExplorer = () => {
                   {isEditMode ? (
                     <div className="space-y-3">
                       <div className="space-y-1.5">
-                        <Label className="text-xs">Stop Name</Label>
+                        <Label className="text-xs">Hub Name</Label>
                         <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="transport-input h-9" />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs">Cost (Optional)</Label>
-                        <Input type="number" step="0.01" value={editCost} onChange={(e) => setEditCost(e.target.value)} className="transport-input h-9" />
+                        <Label className="text-xs">Address</Label>
+                        <Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} className="transport-input h-9" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Transport Type</Label>
+                        <Input value={editTransportType} onChange={(e) => setEditTransportType(e.target.value)} placeholder="e.g. Bus, Taxi" className="transport-input h-9" />
                       </div>
                       <div className="bg-muted/50 rounded-md p-2.5 text-xs font-mono">
-                        <p>Lat: {selectedStop.latitude.toFixed(6)}</p>
-                        <p>Lng: {selectedStop.longitude.toFixed(6)}</p>
+                        <p>Lat: {selectedHub.latitude.toFixed(6)}</p>
+                        <p>Lng: {selectedHub.longitude.toFixed(6)}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button onClick={handleEditStop} disabled={saving || !editName.trim()} size="sm" className="transport-button-primary flex-1">
+                        <Button onClick={handleEditHub} disabled={saving || !editName.trim()} size="sm" className="transport-button-primary flex-1">
                           {saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
                           Save
                         </Button>
@@ -404,14 +363,20 @@ const StopMapExplorer = () => {
                     <>
                       <div className="space-y-2">
                         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Details</h4>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
                           <div className="bg-muted/50 rounded-md p-2.5">
-                            <p className="text-muted-foreground text-[10px] mb-0.5">Coordinates</p>
-                            <p className="font-mono text-xs">{selectedStop.latitude.toFixed(4)}, {selectedStop.longitude.toFixed(4)}</p>
+                            <p className="text-muted-foreground text-[10px] mb-0.5">Address</p>
+                            <p className="text-xs">{selectedHub.address || '—'}</p>
                           </div>
-                          <div className="bg-muted/50 rounded-md p-2.5">
-                            <p className="text-muted-foreground text-[10px] mb-0.5">Cost</p>
-                            <p className="text-sm font-medium">{selectedStop.cost ? `R${selectedStop.cost}` : '—'}</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-muted/50 rounded-md p-2.5">
+                              <p className="text-muted-foreground text-[10px] mb-0.5">Coordinates</p>
+                              <p className="font-mono text-xs">{selectedHub.latitude.toFixed(4)}, {selectedHub.longitude.toFixed(4)}</p>
+                            </div>
+                            <div className="bg-muted/50 rounded-md p-2.5">
+                              <p className="text-muted-foreground text-[10px] mb-0.5">Transport</p>
+                              <p className="text-xs">{selectedHub.transport_type || '—'}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -424,7 +389,7 @@ const StopMapExplorer = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={handleDeleteStop}
+                          onClick={handleDeleteHub}
                           disabled={deleting}
                           className="flex-1 h-8 text-xs text-destructive hover:bg-destructive hover:text-destructive-foreground"
                         >
@@ -438,26 +403,26 @@ const StopMapExplorer = () => {
                       <div className="space-y-2">
                         <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                           <Route className="w-3 h-3" />
-                          Linked Routes
+                          Hub Routes
                         </h4>
 
                         {loadingRoutes ? (
                           <div className="flex items-center justify-center py-6">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                           </div>
-                        ) : linkedRoutes.length === 0 ? (
+                        ) : hubRoutes.length === 0 ? (
                           <div className="text-center py-4 bg-muted/30 rounded-md">
                             <Route className="w-5 h-5 mx-auto mb-1 text-muted-foreground/50" />
-                            <p className="text-xs text-muted-foreground">No routes linked to this stop</p>
+                            <p className="text-xs text-muted-foreground">No routes linked to this hub</p>
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {linkedRoutes.map((route) => (
-                              <div key={route.route_id} className="bg-muted/40 rounded-lg p-2.5 space-y-1.5 hover:bg-muted/60 transition-colors">
+                            {hubRoutes.map((route) => (
+                              <div key={route.id} className="bg-muted/40 rounded-lg p-2.5 space-y-1.5 hover:bg-muted/60 transition-colors">
                                 <div className="flex items-start justify-between gap-2">
-                                  <p className="text-sm font-medium leading-tight">{route.route_name}</p>
-                                  <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 flex-shrink-0">
-                                    #{route.order_number}
+                                  <p className="text-sm font-medium leading-tight">{route.name}</p>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0">
+                                    R{route.cost}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -465,17 +430,15 @@ const StopMapExplorer = () => {
                                     {route.transport_type}
                                   </Badge>
                                 </div>
-                                {(route.start_point || route.end_point) && (
-                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                    <span className="truncate">{route.start_point}</span>
-                                    <ChevronRight className="w-2.5 h-2.5 flex-shrink-0" />
-                                    <span className="truncate">{route.end_point}</span>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                  <span className="truncate">{route.start_point}</span>
+                                  <ChevronRight className="w-2.5 h-2.5 flex-shrink-0" />
+                                  <span className="truncate">{route.end_point}</span>
+                                </div>
                               </div>
                             ))}
                             <p className="text-[10px] text-muted-foreground text-center pt-1">
-                              {linkedRoutes.length} route{linkedRoutes.length !== 1 ? 's' : ''} linked
+                              {hubRoutes.length} route{hubRoutes.length !== 1 ? 's' : ''} linked
                             </p>
                           </div>
                         )}
@@ -488,14 +451,14 @@ const StopMapExplorer = () => {
           )}
         </div>
 
-        {/* Create stop sidebar */}
+        {/* Create hub sidebar */}
         <div className={`bg-background border-l transition-all duration-300 ease-in-out overflow-hidden ${createSidebarOpen ? 'w-[340px]' : 'w-0'}`}>
           {createSidebarOpen && selectedCoords && (
             <div className="w-[340px] h-full flex flex-col">
               <div className="flex items-center justify-between p-3 border-b bg-muted/30">
                 <div className="flex items-center gap-2 min-w-0">
                   <Plus className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="font-semibold text-sm">Create New Stop</span>
+                  <span className="font-semibold text-sm">Create New Hub</span>
                 </div>
                 <Button variant="ghost" size="sm" onClick={closeCreateSidebar} className="h-7 w-7 p-0 flex-shrink-0">
                   <X className="w-4 h-4" />
@@ -504,111 +467,50 @@ const StopMapExplorer = () => {
 
               <ScrollArea className="flex-1">
                 <div className="p-3 space-y-4">
-                  {/* Coordinates */}
                   <div className="bg-muted/50 rounded-md p-2.5 text-xs font-mono">
                     <p>Lat: {selectedCoords.lat.toFixed(6)}</p>
                     <p>Lng: {selectedCoords.lng.toFixed(6)}</p>
                   </div>
 
-                  {/* Stop name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Stop Name *</Label>
+                    <Label className="text-xs">Hub Name *</Label>
                     <Input
-                      value={newStopName}
-                      onChange={(e) => setNewStopName(e.target.value)}
-                      placeholder="Enter stop name"
+                      value={newHubName}
+                      onChange={(e) => setNewHubName(e.target.value)}
+                      placeholder="Enter hub name"
                       className="transport-input h-9"
                     />
                   </div>
 
-                  {/* Cost */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Cost (Optional)</Label>
+                    <Label className="text-xs">Address</Label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      value={newStopCost}
-                      onChange={(e) => setNewStopCost(e.target.value)}
-                      placeholder="e.g. 15.00"
+                      value={newHubAddress}
+                      onChange={(e) => setNewHubAddress(e.target.value)}
+                      placeholder="Enter address"
+                      className="transport-input h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Transport Type</Label>
+                    <Input
+                      value={newHubTransportType}
+                      onChange={(e) => setNewHubTransportType(e.target.value)}
+                      placeholder="e.g. Bus, Taxi, Train"
                       className="transport-input h-9"
                     />
                   </div>
 
                   <Separator />
 
-                  {/* Link routes */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                      <Link className="w-3 h-3" />
-                      Link Routes (Optional)
-                    </h4>
-
-                    <div className="space-y-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Route</Label>
-                        <Select value={selectedRouteToLink} onValueChange={setSelectedRouteToLink}>
-                          <SelectTrigger className="h-9 text-xs">
-                            <SelectValue placeholder="Select a route" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableRoutes.map((route) => (
-                              <SelectItem key={route.id} value={route.id} className="text-xs">
-                                {route.name} ({route.transport_type})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Position / Order #</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={selectedOrderNumber}
-                          onChange={(e) => setSelectedOrderNumber(e.target.value)}
-                          placeholder="e.g. 1"
-                          className="transport-input h-9"
-                        />
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={addRouteToLink}
-                        disabled={!selectedRouteToLink || !selectedOrderNumber}
-                        className="w-full h-8 text-xs"
-                      >
-                        <Plus className="w-3 h-3 mr-1" />
-                        Add Route Link
-                      </Button>
-                    </div>
-
-                    {routesToLink.length > 0 && (
-                      <div className="space-y-1.5">
-                        {routesToLink.map((r) => (
-                          <div key={r.route_id} className="flex items-center justify-between bg-muted/40 rounded-md p-2 text-xs">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="truncate font-medium">{r.route_name}</span>
-                              <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0">#{r.order_number}</Badge>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => removeRouteToLink(r.route_id)} className="h-6 w-6 p-0">
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  {/* Create button */}
                   <Button
-                    onClick={handleCreateStop}
-                    disabled={creating || !newStopName.trim()}
+                    onClick={handleCreateHub}
+                    disabled={creating || !newHubName.trim()}
                     className="transport-button-primary w-full"
                   >
                     {creating ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-                    Create Stop
+                    Create Hub
                   </Button>
                 </div>
               </ScrollArea>
@@ -642,7 +544,7 @@ const StopMapExplorer = () => {
               </div>
               <Button onClick={openCreateSidebar} className="transport-button-primary">
                 <Plus className="w-4 h-4 mr-1" />
-                Create Stop Here
+                Create Hub Here
               </Button>
             </div>
           </CardContent>
@@ -652,4 +554,4 @@ const StopMapExplorer = () => {
   );
 };
 
-export default StopMapExplorer;
+export default HubMapExplorer;

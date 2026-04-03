@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { MapPin, Plus, Edit, Trash2, Search, Map } from 'lucide-react';
+import { MapPin, Plus, Edit, Trash2, Search, Map, List } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import MapSelector from './MapSelector';
+import HubMapExplorer from './HubMapExplorer';
 
 interface Hub {
   id: string;
@@ -342,18 +344,30 @@ const HubsManagement = () => {
           </DialogContent>
         </Dialog>
       </div>
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <List className="w-4 h-4" />
+            List View
+          </TabsTrigger>
+          <TabsTrigger value="map" className="flex items-center gap-2">
+            <Map className="w-4 h-4" />
+            Map Explorer
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search hubs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 transport-input"
-          />
-        </div>
-      </div>
+        <TabsContent value="list" className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search hubs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 transport-input"
+              />
+            </div>
+          </div>
 
       <div className="grid gap-4">
         {filteredHubs.length === 0 ? (
@@ -522,6 +536,12 @@ const HubsManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
+        </TabsContent>
+
+        <TabsContent value="map">
+          <HubMapExplorer />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

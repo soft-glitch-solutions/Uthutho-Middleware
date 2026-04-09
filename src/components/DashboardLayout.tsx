@@ -16,6 +16,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'hubs', label: 'Hubs', icon: Building2 },
     { id: 'stops', label: 'Stops', icon: MapPin },
+    { id: 'reports', label: 'Reports', icon: MapPin },
     { id: 'routes', label: 'Routes', icon: Route },
     { id: 'route-stops', label: 'Route Stops', icon: Navigation2 },
     { id: 'stop-routes', label: 'Stop Routes', icon: GitBranch },

@@ -20,6 +20,7 @@ import JourneysManagement from '@/components/JourneysManagement';
 import JourneyMessagesManagement from '@/components/JourneyMessagesManagement';
 import RequestsManagement from '@/components/RequestsManagement';
 import DriversManagement from '@/components/DriversManagement';
+import ReportsManagement from '@/components/ReportsManagement';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -93,6 +94,8 @@ const Index = () => {
         return <UsersManagement />;
       case 'profile':
         return <ProfileManagement />;
+      case 'reports':
+        return <ReportsManagement />;
       default:
         return <OverviewDashboard />;
     }

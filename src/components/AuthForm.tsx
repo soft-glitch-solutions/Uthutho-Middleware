@@ -76,7 +76,7 @@ const AuthForm = () => {
               Admin Access
             </CardTitle>
             <CardDescription className="text-base">
-              Sign in to manage transport hubs, stops, and routes
+              Change made
             </CardDescription>
           </CardHeader>
           <CardContent>

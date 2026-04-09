@@ -21,6 +21,7 @@ import JourneyMessagesManagement from '@/components/JourneyMessagesManagement';
 import RequestsManagement from '@/components/RequestsManagement';
 import DriversManagement from '@/components/DriversManagement';
 import ReportsManagement from '@/components/ReportsManagement';
+import Admin from '@/components/Admin';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -64,6 +65,8 @@ const Index = () => {
         return <OverviewDashboard />;
       case 'hubs':
         return <HubsManagement />;
+      case 'admin':
+        return <Admin />;
       case 'stops':
         return <StopsManagement />;
       case 'routes':

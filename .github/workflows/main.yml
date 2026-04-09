@@ -7,7 +7,7 @@ on:
       - Shaqeel
       - Waseem
       - Makhi
-      - Ishmeal
+      - Ishmael
 
 jobs:
   deploy:

@@ -77,10 +77,9 @@ interface Profile {
   last_name: string | null;
   points: number;
   selected_title: string | null;
-  bio: string | null;
   avatar_url: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   email?: string;
   phone?: string;
   location?: string;
@@ -124,7 +123,6 @@ const UsersManagement = () => {
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
-    bio: '',
     selected_title: '',
     phone: '',
     location: '',
@@ -198,7 +196,7 @@ const UsersManagement = () => {
         .from('hub_posts')
         .select(`
           *,
-          profiles(id, first_name, last_name, points, selected_title, bio),
+          profiles(id, first_name, last_name, points, selected_title, avatar_url),
           hubs(name)
         `)
         .order('created_at', { ascending: false })
@@ -211,7 +209,7 @@ const UsersManagement = () => {
         .from('stop_posts')
         .select(`
           *,
-          profiles(id, first_name, last_name, points, selected_title, bio),
+          profiles(id, first_name, last_name, points, selected_title, avatar_url),
           stops(name)
         `)
         .order('created_at', { ascending: false })
@@ -243,7 +241,6 @@ const UsersManagement = () => {
         .update({
           first_name: editForm.first_name || null,
           last_name: editForm.last_name || null,
-          bio: editForm.bio || null,
           selected_title: editForm.selected_title || null,
           updated_at: new Date().toISOString(),
         })
@@ -258,7 +255,6 @@ const UsersManagement = () => {
               ...p, 
               first_name: editForm.first_name,
               last_name: editForm.last_name,
-              bio: editForm.bio,
               selected_title: editForm.selected_title,
             }
           : p
@@ -273,7 +269,6 @@ const UsersManagement = () => {
       setEditForm({
         first_name: '',
         last_name: '',
-        bio: '',
         selected_title: '',
         phone: '',
         location: '',
@@ -414,7 +409,6 @@ const UsersManagement = () => {
     setEditForm({
       first_name: user.first_name || '',
       last_name: user.last_name || '',
-      bio: user.bio || '',
       selected_title: user.selected_title || '',
       phone: user.phone || '',
       location: user.location || '',
@@ -586,7 +580,7 @@ const UsersManagement = () => {
                           <TableCell>
                             <div className="max-w-xs">
                               <p className="text-sm truncate">
-                                {profile.bio || 'No bio yet'}
+                                {profile.selected_title || 'No title'}
                               </p>
                             </div>
                           </TableCell>
@@ -816,12 +810,11 @@ const UsersManagement = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Bio</Label>
-                <Textarea
-                  value={editForm.bio}
-                  onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
-                  placeholder="User's biography..."
-                  rows={4}
+                <Label>Selected Title</Label>
+                <Input
+                  value={editForm.selected_title}
+                  onChange={(e) => setEditForm({...editForm, selected_title: e.target.value})}
+                  placeholder="User's title..."
                 />
               </div>
 

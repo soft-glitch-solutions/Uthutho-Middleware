@@ -61,8 +61,11 @@ import {
   Clock,
   ArrowUpDown,
   Search,
+  Flag,
+  MapPin,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import StopReports from './reports/StopReports';
 
 // Types
 interface Report {
@@ -485,9 +488,19 @@ const ReportsManagement = () => {
       </div>
 
       <Tabs defaultValue="reports" className="w-full">
-        <TabsList>
-          <TabsTrigger value="reports">Reports List</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics Dashboard</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Reports List
+          </TabsTrigger>
+          <TabsTrigger value="stop-reports" className="flex items-center gap-2">
+            <Flag className="w-4 h-4" />
+            Stop Reports
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Analytics Dashboard
+          </TabsTrigger>
         </TabsList>
 
         {/* Reports List Tab */}
@@ -618,6 +631,26 @@ const ReportsManagement = () => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Stop Reports Tab - Integrated StopReports Component */}
+        <TabsContent value="stop-reports" className="mt-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold flex items-center gap-2">
+                <Flag className="w-6 h-6 text-red-500" />
+                Stop Analysis & Flagging
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                Analyze stops by region, flag locations for review, and track performance metrics
+              </p>
+            </div>
+            <Badge variant="outline" className="gap-1">
+              <MapPin className="w-3 h-3" />
+              South African Regions
+            </Badge>
+          </div>
+          <StopReports />
         </TabsContent>
 
         {/* Analytics Dashboard Tab */}

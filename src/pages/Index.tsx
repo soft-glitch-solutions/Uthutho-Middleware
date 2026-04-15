@@ -22,6 +22,7 @@ import RequestsManagement from '@/components/RequestsManagement';
 import DriversManagement from '@/components/DriversManagement';
 import ReportsManagement from '@/components/ReportsManagement';
 import Admin from '@/components/Admin';
+import RolesPermissionsManagement from '@/components/RolesPermissionsManagement';
 import NotificationsManagement from '@/components/NotificationsManagement';
 import NotificationReports from '@/components/reports/NotificationReports';
 
@@ -34,6 +35,7 @@ import PerformanceReports from '@/components/reports/PerformanceReports';
 import IncidentReports from '@/components/reports/IncidentReports';
 import Analytics from '@/components/reports/Analytics';
 import EmailReports from '@/components/reports/EmailReports';*/
+import UserReports from '@/components/reports/UserReports';
 import EmailLogs from '@/components/reports/EmailLogs';
 import EmailTemplates from '@/components/reports/EmailTemplates';
 import ScheduledReports from '@/components/reports/ScheduledReports';
@@ -110,6 +112,9 @@ const Index = () => {
       // Reports Section
       case 'reports-dashboard':
         return <ReportsManagement />;
+      case 'user-reports':
+        return <UserReports />;
+      /* 
       case 'journey-reports':
         return <JourneyReports />;
       case 'driver-reports':
@@ -126,6 +131,7 @@ const Index = () => {
         return <Analytics />;
       case 'email-reports':
         return <EmailReports />;
+      */
       case 'notification-reports':
         return <NotificationReports />;
       case 'email-logs':
@@ -142,6 +148,8 @@ const Index = () => {
         return <Admin />;
       case 'users':
         return <UsersManagement />;
+      case 'roles-permissions':
+        return <RolesPermissionsManagement />;
       case 'notifications':
         return <NotificationsManagement />;
       

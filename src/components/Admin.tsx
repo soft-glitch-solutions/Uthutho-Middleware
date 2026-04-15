@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Users, Search, Ban, Trash2, Eye, MessageCircle, MapPin, RotateCcw, Copy,
   Edit, Save, X, UserCheck, UserX, Mail, Calendar, Award, FileText, Loader2,
-  RefreshCw, Shield, Lock, Plus, ShieldCheck
+  RefreshCw, Shield, Lock, ShieldCheck
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -34,20 +34,6 @@ interface Profile {
 
 interface UserWithRole extends Profile {
   role?: string;
-}
-
-interface Permission {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-}
-
-interface RolePermission {
-  id: string;
-  role: string;
-  permission_id: string;
-  permissions?: Permission;
 }
 
 interface HubPost {
@@ -75,8 +61,6 @@ const Admin = () => {
   const [profiles, setProfiles] = useState<UserWithRole[]>([]);
   const [hubPosts, setHubPosts] = useState<HubPost[]>([]);
   const [stopPosts, setStopPosts] = useState<StopPost[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [resettingPassword, setResettingPassword] = useState<string | null>(null);
@@ -85,8 +69,7 @@ const Admin = () => {
   const [savingUser, setSavingUser] = useState(false);
   const [filterRole, setFilterRole] = useState<string>('all');
   const [userStats, setUserStats] = useState({ total: 0, active: 0, totalPoints: 0 });
-  const [newPermission, setNewPermission] = useState({ name: '', description: '' });
-  const [creatingPermission, setCreatingPermission] = useState(false);
+  const [roles, setRoles] = useState<{name: string}[]>([]);
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -97,8 +80,7 @@ const Admin = () => {
   const fetchAll = () => {
     fetchUsers();
     fetchPosts();
-    fetchPermissions();
-    fetchRolePermissions();
+    fetchRoles();
   };
 
   const fetchUsers = async () => {
@@ -146,6 +128,12 @@ const Admin = () => {
     }
   };
 
+  const fetchRoles = async () => {
+    const { data } = await supabase.from('roles').select('name').order('name');
+    if (data) setRoles(data);
+    else setRoles([{ name: 'admin' }, { name: 'user' }, { name: 'driver' }, { name: 'moderator' }]);
+  };
+
   const fetchPosts = async () => {
     try {
       const [{ data: hubData }, { data: stopData }] = await Promise.all([
@@ -157,16 +145,6 @@ const Admin = () => {
     } catch (error) {
       console.error('Error fetching posts:', error);
     }
-  };
-
-  const fetchPermissions = async () => {
-    const { data } = await supabase.from('permissions').select('*').order('name');
-    setPermissions(data || []);
-  };
-
-  const fetchRolePermissions = async () => {
-    const { data } = await supabase.from('role_permissions').select('*, permissions(*)');
-    setRolePermissions(data || []);
   };
 
   const changeUserRole = async (userId: string, newRole: string) => {
@@ -186,44 +164,6 @@ const Admin = () => {
     } finally {
       setChangingRole(null);
     }
-  };
-
-  const createPermission = async () => {
-    if (!newPermission.name.trim()) return;
-    setCreatingPermission(true);
-    try {
-      const { error } = await supabase.from('permissions').insert({
-        name: newPermission.name.trim(),
-        description: newPermission.description.trim() || null,
-      });
-      if (error) throw error;
-      setNewPermission({ name: '', description: '' });
-      fetchPermissions();
-      toast({ title: "Success", description: "Permission created." });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to create permission.", variant: "destructive" });
-    } finally {
-      setCreatingPermission(false);
-    }
-  };
-
-  const deletePermission = async (id: string) => {
-    const { error } = await supabase.from('permissions').delete().eq('id', id);
-    if (!error) {
-      fetchPermissions();
-      fetchRolePermissions();
-      toast({ title: "Success", description: "Permission deleted." });
-    }
-  };
-
-  const toggleRolePermission = async (role: string, permissionId: string) => {
-    const existing = rolePermissions.find(rp => rp.role === role && rp.permission_id === permissionId);
-    if (existing) {
-      await supabase.from('role_permissions').delete().eq('id', existing.id);
-    } else {
-      await supabase.from('role_permissions').insert({ role: role as any, permission_id: permissionId });
-    }
-    fetchRolePermissions();
   };
 
   const updateUserProfile = async () => {
@@ -275,11 +215,6 @@ const Admin = () => {
     ...stopPosts.map(p => ({ ...p, type: 'stop' as const, location: p.stops?.name || 'Unknown' })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  const roles = ['admin', 'moderator', 'user'];
-
-  const hasRolePermission = (role: string, permId: string) =>
-    rolePermissions.some(rp => rp.role === role && rp.permission_id === permId);
-
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -317,8 +252,8 @@ const Admin = () => {
           <UserCheck className="w-6 h-6 text-primary" />
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center justify-between">
-          <div><p className="text-xs text-muted-foreground">Permissions</p><p className="text-xl font-bold">{permissions.length}</p></div>
-          <Lock className="w-6 h-6 text-primary" />
+          <div><p className="text-xs text-muted-foreground">Recent Posts</p><p className="text-xl font-bold">{allPosts.length}</p></div>
+          <MessageCircle className="w-6 h-6 text-primary" />
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center justify-between">
           <div><p className="text-xs text-muted-foreground">Total Points</p><p className="text-xl font-bold">{userStats.totalPoints.toLocaleString()}</p></div>
@@ -329,7 +264,6 @@ const Admin = () => {
       <Tabs defaultValue="users" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
 
@@ -349,9 +283,11 @@ const Admin = () => {
                   <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="moderator">Moderator</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
+                    {roles.map(r => (
+                      <SelectItem key={r.name} value={r.name}>
+                        <span className="capitalize">{r.name}</span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -387,8 +323,8 @@ const Admin = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {roles.map(r => (
-                                <SelectItem key={r} value={r}>
-                                  <span className="capitalize">{r}</span>
+                                <SelectItem key={r.name} value={r.name}>
+                                  <span className="capitalize">{r.name}</span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -433,119 +369,7 @@ const Admin = () => {
           </Card>
         </TabsContent>
 
-        {/* Roles & Permissions Tab */}
-        <TabsContent value="roles" className="mt-4 space-y-6">
-          {/* Create Permission */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2"><Plus className="w-5 h-5" /> Create Permission</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input placeholder="Permission name (e.g. manage_routes)" value={newPermission.name} onChange={e => setNewPermission(p => ({ ...p, name: e.target.value }))} className="flex-1" />
-                <Input placeholder="Description" value={newPermission.description} onChange={e => setNewPermission(p => ({ ...p, description: e.target.value }))} className="flex-1" />
-                <Button onClick={createPermission} disabled={creatingPermission || !newPermission.name.trim()}>
-                  {creatingPermission ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-1" />}
-                  Add
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Permissions List */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2"><Lock className="w-5 h-5" /> Permissions</CardTitle>
-              <CardDescription>Manage permissions and assign them to roles</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {permissions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No permissions created yet.</p>
-              ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Permission</TableHead>
-                        <TableHead>Description</TableHead>
-                        {roles.map(r => (
-                          <TableHead key={r} className="text-center capitalize">{r}</TableHead>
-                        ))}
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {permissions.map(perm => (
-                        <TableRow key={perm.id}>
-                          <TableCell className="font-medium font-mono text-sm">{perm.name}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{perm.description || '—'}</TableCell>
-                          {roles.map(role => (
-                            <TableCell key={role} className="text-center">
-                              <Checkbox
-                                checked={hasRolePermission(role, perm.id)}
-                                onCheckedChange={() => toggleRolePermission(role, perm.id)}
-                              />
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-right">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-destructive">
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Permission</AlertDialogTitle>
-                                  <AlertDialogDescription>Delete "{perm.name}"? This will remove it from all roles.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => deletePermission(perm.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Role Summary */}
-          <div className="grid gap-4 md:grid-cols-3">
-            {roles.map(role => {
-              const rolePerms = rolePermissions.filter(rp => rp.role === role);
-              return (
-                <Card key={role}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base capitalize flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-primary" />
-                      {role}
-                    </CardTitle>
-                    <CardDescription>{rolePerms.length} permission(s)</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {rolePerms.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">No permissions assigned</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {rolePerms.map(rp => (
-                          <Badge key={rp.id} variant="outline" className="text-xs">
-                            {(rp as any).permissions?.name || rp.permission_id}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
 
         {/* Posts Tab */}
         <TabsContent value="posts" className="mt-4">

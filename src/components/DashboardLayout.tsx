@@ -16,7 +16,7 @@ interface DashboardLayoutProps {
 
 const navigationItems = [
   { id: 'overview', label: 'Overview', icon: Home },
-  { id: 'admin', label: 'Admin', icon: ShieldPlus },
+  { id: 'admin', label: 'Admin', icon: ShieldPlus, adminOnly: true },
   { id: 'hubs', label: 'Hubs', icon: Building2 },
   { id: 'stops', label: 'Stops', icon: MapPin },
   { id: 'reports', label: 'Reports', icon: MapPin },
@@ -36,10 +36,12 @@ const navigationItems = [
   { id: 'profile', label: 'Profile', icon: User },
 ];
 
-const SidebarNav = ({ activeTab, onTabChange, onItemClick }: { activeTab: string; onTabChange: (tab: string) => void; onItemClick?: () => void }) => (
+const SidebarNav = ({ activeTab, onTabChange, onItemClick, userRole }: { activeTab: string; onTabChange: (tab: string) => void; onItemClick?: () => void; userRole: string }) => (
   <ScrollArea className="flex-1">
     <nav className="p-3 space-y-1">
-      {navigationItems.map((item) => {
+      {navigationItems
+        .filter(item => !(item as any).adminOnly || userRole === 'admin')
+        .map((item) => {
         const Icon = item.icon;
         return (
           <Button
@@ -122,7 +124,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                 <h1 className="text-lg font-bold text-foreground">Uthutho Portal</h1>
                 <p className="text-xs text-muted-foreground">Transport Management</p>
               </div>
-              <SidebarNav activeTab={activeTab} onTabChange={onTabChange} onItemClick={() => setMobileOpen(false)} />
+              <SidebarNav activeTab={activeTab} onTabChange={onTabChange} onItemClick={() => setMobileOpen(false)} userRole={userRole} />
             </SheetContent>
           </Sheet>
           <h1 className="text-lg font-bold text-foreground hidden sm:block">Uthutho Portal</h1>
@@ -168,7 +170,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex w-60 border-r bg-card flex-col shrink-0">
-          <SidebarNav activeTab={activeTab} onTabChange={onTabChange} />
+          <SidebarNav activeTab={activeTab} onTabChange={onTabChange} userRole={userRole} />
           <div className="p-3 border-t text-center text-xs text-muted-foreground">
             Uthutho Portal v1.0
           </div>

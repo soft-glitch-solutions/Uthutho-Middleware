@@ -225,6 +225,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
 
       if (newRole === 'admin') {
         localStorage.removeItem('uthutho_admin_impersonation');
+        localStorage.removeItem('uthutho_impersonate_org_id');
+        localStorage.removeItem('uthutho_impersonate_org_role');
         setIsImpersonating(false);
       } else {
         localStorage.setItem('uthutho_admin_impersonation', 'true');
@@ -236,8 +238,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
         description: `You are now operating as: ${newRole}`,
       });
 
-      // Optionally refresh page to force all RLS and component filters to update
-      // window.location.reload(); 
+      // Force a reload to ensure hooks like useOrganisation refetch correctly
+      window.location.reload(); 
     } catch (error: any) {
       toast({
         title: "Error switching role",

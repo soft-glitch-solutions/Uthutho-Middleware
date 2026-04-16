@@ -22,6 +22,8 @@ interface UserWithRole extends UserProfile {
   email?: string;
   role: string;
   org_name?: string;
+  org_id?: string;
+  org_role?: string;
 }
 
 const AdminImpersonation = () => {
@@ -40,20 +42,26 @@ const AdminImpersonation = () => {
     try {
       const { data: profiles } = await supabase.from('profiles').select('id, first_name, last_name, avatar_url');
       const { data: roles } = await supabase.from('user_roles').select('user_id, role');
-      const { data: orgMembers } = await supabase.from('organisation_members').select('user_id, role, organisation:organisations(name)');
+      const { data: orgMembers } = await supabase.from('organisation_members').select('user_id, role, org_id, organisation:organisations(name)');
 
       const roleMap: Record<string, string> = {};
       (roles || []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
 
-      const orgMap: Record<string, string> = {};
+      const orgMap: Record<string, any> = {};
       (orgMembers || []).forEach((m: any) => {
-        orgMap[m.user_id] = (m.organisation as any)?.name || '';
+        orgMap[m.user_id] = {
+          name: (m.organisation as any)?.name || '',
+          org_id: m.org_id,
+          org_role: m.role
+        };
       });
 
       const combined: UserWithRole[] = (profiles || []).map((p: any) => ({
         ...p,
         role: roleMap[p.id] || 'user',
-        org_name: orgMap[p.id] || undefined,
+        org_name: orgMap[p.id]?.name || undefined,
+        org_id: orgMap[p.id]?.org_id || undefined,
+        org_role: orgMap[p.id]?.org_role || undefined,
       }));
 
       setUsers(combined);
@@ -83,6 +91,32 @@ const AdminImpersonation = () => {
     }
 
     setUserPermissions(perms);
+  };
+
+  const handleImpersonate = async (user: UserWithRole) => {
+    if (!user.org_id) {
+      toast.error('This user does not belong to an organisation');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      // Update database role to match the impersonated user's role
+      await supabase.from('user_roles').delete().eq('user_id', currentUser.id);
+      await supabase.from('user_roles').insert({ user_id: currentUser.id, role: user.role as any });
+
+      localStorage.setItem('uthutho_admin_impersonation', 'true');
+      localStorage.setItem('uthutho_impersonate_org_id', user.org_id);
+      localStorage.setItem('uthutho_impersonate_org_role', user.org_role || 'member');
+
+      toast.success(`Impersonating ${user.first_name} ${user.last_name}`);
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message);
+      setLoading(false);
+    }
   };
 
   const filtered = users.filter(u => {
@@ -161,10 +195,20 @@ const AdminImpersonation = () => {
                         <span className="text-sm text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-2">
                       <Button size="sm" variant="ghost" onClick={() => viewUserAccess(user)}>
                         <Eye className="w-4 h-4 mr-1" /> View
                       </Button>
+                      {user.org_id && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20"
+                          onClick={() => handleImpersonate(user)}
+                        >
+                          <UserCog className="w-4 h-4 mr-1" /> Impersonate
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

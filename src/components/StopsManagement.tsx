@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Navigation, Plus, Edit, Trash2, Search, Map, List } from 'lucide-react';
 import MapSelector from './MapSelector';
@@ -225,28 +226,7 @@ const StopsManagement = () => {
           </h1>
           <p className="text-muted-foreground">Manage transport stops and their locations</p>
         </div>
-      </div>
 
-      <Tabs defaultValue="list" className="w-full">
-        <TabsList>
-          <TabsTrigger value="list" className="flex items-center gap-1.5">
-            <List className="w-4 h-4" />
-            List View
-          </TabsTrigger>
-          <TabsTrigger value="map" className="flex items-center gap-1.5">
-            <Map className="w-4 h-4" />
-            Map Explorer
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="map" className="mt-4">
-          <StopMapExplorer />
-        </TabsContent>
-
-        <TabsContent value="list" className="mt-4">
-      <div className="flex items-center justify-between">
-        <div></div>
-        
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="transport-button-primary">
@@ -364,82 +344,96 @@ const StopsManagement = () => {
         </Dialog>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search stops..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 transport-input"
-          />
-        </div>
-      </div>
+      <Tabs defaultValue="map" className="w-full">
+        <TabsList>
+          <TabsTrigger value="map" className="flex items-center gap-1.5">
+            <Map className="w-4 h-4" />
+            Map Explorer
+          </TabsTrigger>
+          <TabsTrigger value="list" className="flex items-center gap-1.5">
+            <List className="w-4 h-4" />
+            List View
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-4">
-        {filteredStops.length === 0 ? (
-          <Card className="transport-card">
-            <CardContent className="flex items-center justify-center h-32">
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No stops found matching your search.' : 'No stops available. Create your first stop!'}
-              </p>
+        <TabsContent value="map" className="mt-4">
+          <StopMapExplorer />
+        </TabsContent>
+
+        <TabsContent value="list" className="mt-4 space-y-4">
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search stops..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 transport-input"
+                    />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          filteredStops.map((stop) => (
-            <Card key={stop.id} className="transport-card hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl text-foreground">{stop.name}</CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                      Transport Stop
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(stop)}
-                      className="transport-button-secondary"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(stop.id)}
-                      className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Coordinates</p>
-                    <p className="font-medium">{stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Cost</p>
-                    <p className="font-medium">{stop.cost ? `R${stop.cost}` : 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Order</p>
-                    <p className="font-medium">{stop.order_number || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Created</p>
-                    <p className="font-medium">{new Date(stop.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Stop Name</TableHead>
+                    <TableHead>Coordinates</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Order Number</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStops.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        {searchTerm ? 'No stops found matching your search.' : 'No stops available. Create your first stop!'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredStops.map((stop) => (
+                      <TableRow key={stop.id}>
+                        <TableCell className="font-medium text-foreground">{stop.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}</TableCell>
+                        <TableCell>{stop.cost ? `R${stop.cost}` : 'Not set'}</TableCell>
+                        <TableCell>{stop.order_number || 'Not set'}</TableCell>
+                        <TableCell className="text-muted-foreground">{new Date(stop.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(stop)}
+                              className="transport-button-secondary"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(stop.id)}
+                              className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>

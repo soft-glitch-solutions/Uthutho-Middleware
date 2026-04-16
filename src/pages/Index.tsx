@@ -25,6 +25,7 @@ import Admin from '@/components/Admin';
 import RolesPermissionsManagement from '@/components/RolesPermissionsManagement';
 import NotificationsManagement from '@/components/NotificationsManagement';
 import NotificationReports from '@/components/reports/NotificationReports';
+import OrganisationManagement from '@/components/OrganisationManagement';
 
 // Import new report components (you'll need to create these)
 /*import JourneyReports from '@/components/reports/JourneyReports';
@@ -39,7 +40,7 @@ import UserReports from '@/components/reports/UserReports';
 import EmailLogs from '@/components/reports/EmailLogs';
 import EmailTemplates from '@/components/reports/EmailTemplates';
 import ScheduledReports from '@/components/reports/ScheduledReports';
-import ReportSubscriptions from '@/components/reports/ReportSubscriptions'; 
+import ReportSubscriptions from '@/components/reports/ReportSubscriptions';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -90,7 +91,7 @@ const Index = () => {
         return <NearbySpotsManagement />;
       case 'requests':
         return <RequestsManagement />;
-      
+
       // Transnet Section
       case 'routes':
         return <RoutesManagement />;
@@ -108,7 +109,7 @@ const Index = () => {
         return <JourneyMessagesManagement />;
       case 'stop-waiting':
         return <StopWaitingManagement />;
-      
+
       // Reports Section
       case 'reports-dashboard':
         return <ReportsManagement />;
@@ -142,7 +143,7 @@ const Index = () => {
         return <ScheduledReports />;
       case 'report-subscriptions':
         return <ReportSubscriptions />;
-      
+
       // Admin Section
       case 'admin':
         return <Admin />;
@@ -152,17 +153,19 @@ const Index = () => {
         return <RolesPermissionsManagement />;
       case 'notifications':
         return <NotificationsManagement />;
-      
+      case 'organisations':
+        return <OrganisationManagement />;
+
       // Content Section
       case 'blogs':
         return <BlogsManagement />;
       case 'documentation':
         return <DocumentationManagement />;
-      
+
       // Profile Section
       case 'profile':
         return <ProfileManagement />;
-      
+
       default:
         return <OverviewDashboard />;
     }

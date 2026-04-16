@@ -11,6 +11,7 @@ import { Menu, Home, Building2, MapPin, Route, Users, User, FileText, Bell, Book
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useOrganisation } from '@/hooks/useOrganisation';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -76,6 +77,7 @@ const navigationItems = [
       { id: 'admin', label: 'Admin Dashboard', icon: ShieldPlus },
       { id: 'users', label: 'Users', icon: Users },
       { id: 'roles-permissions', label: 'Roles & Permissions', icon: Lock },
+      { id: 'organisations', label: 'Organisations', icon: Building2 },
       { id: 'notifications', label: 'Notifications', icon: Bell },
     ]
   },
@@ -98,18 +100,19 @@ const navigationItems = [
   }
 ];
 
-const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutProps) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, onTabChange }) => {
+  const { orgData } = useOrganisation();
   const [profile, setProfile] = useState<{ first_name: string | null; last_name: string | null; avatar_url: string | null } | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('user');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [availableRoles, setAvailableRoles] = useState<{name: string}[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<{ name: string }[]>([]);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [isSwitchingRole, setIsSwitchingRole] = useState(false);
   const [showImpersonationDialog, setShowImpersonationDialog] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
   const { toast } = useToast();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -156,7 +159,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
         .from('user_roles')
         .delete()
         .eq('user_id', user.id);
-      
+
       if (deleteError) throw deleteError;
 
       const { error: insertError } = await supabase
@@ -169,7 +172,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       setUserRole(newRole);
       setShowImpersonationDialog(false);
       setRoleSearch('');
-      
+
       if (newRole === 'admin') {
         localStorage.removeItem('uthutho_admin_impersonation');
         setIsImpersonating(false);
@@ -182,7 +185,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
         title: "Role Switched",
         description: `You are now operating as: ${newRole}`,
       });
-      
+
       // Optionally refresh page to force all RLS and component filters to update
       // window.location.reload(); 
     } catch (error: any) {
@@ -223,7 +226,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       <header className="sticky top-0 z-50 bg-card border-b shadow-sm">
         {/* Main navigation bar */}
         <div className="container mx-auto px-4">
-          <div className="flex h-16 items-center justify-between">
+          <div className="flex h-14 items-center justify-between">
             {/* Logo and brand */}
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
@@ -278,6 +281,20 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                   </h1>
                   <p className="text-xs text-muted-foreground">Transport Management System</p>
                 </div>
+                
+                {orgData?.organisation && (
+                  <div className="hidden lg:flex items-center gap-3 border-l pl-6 ml-4">
+                    <div className="p-1.5 bg-primary/10 rounded-lg">
+                      <Building2 className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold leading-none">{orgData.organisation.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                        {orgData.organisation.type.replace('_', ' ')}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Desktop Navigation Dropdowns */}
@@ -285,8 +302,8 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                 {navigationItems
                   .filter(item => !item.adminOnly || userRole === 'admin')
                   .map((item) => (
-                    <DropdownMenu 
-                      key={item.id} 
+                    <DropdownMenu
+                      key={item.id}
                       open={openDropdown === item.id}
                       onOpenChange={(open) => setOpenDropdown(open ? item.id : null)}
                     >
@@ -356,7 +373,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
-                
+
                 {(userRole === 'admin' || isImpersonating) && (
                   <>
                     <DropdownMenuSeparator />
@@ -365,7 +382,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                       Role Impersonation
                     </DropdownMenuLabel>
                     <div className="px-1 py-1">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => setShowImpersonationDialog(true)}
                         className="flex items-center gap-2"
                       >
@@ -375,7 +392,7 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                     </div>
                   </>
                 )}
-                
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -387,83 +404,83 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
         </div>
       </header>
 
-      {/* Main content area */}
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto px-4 py-6">
-          {isImpersonating && (
-            <div className="mb-6 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  Impersonation Active: Viewing portal as <span className="font-bold underline capitalize">{userRole}</span>
-                </span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 text-amber-700 hover:text-amber-800 hover:bg-amber-500/20"
-                onClick={() => handleRoleSwitch('admin')}
+      {/* Main content area */ }
+  <main className="flex-1 overflow-auto">
+    <div className="container mx-auto px-4 py-6">
+      {isImpersonating && (
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Impersonation Active: Viewing portal as <span className="font-bold underline capitalize">{userRole}</span>
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-amber-700 hover:text-amber-800 hover:bg-amber-500/20"
+            onClick={() => handleRoleSwitch('admin')}
+            disabled={isSwitchingRole}
+          >
+            Restore Admin Role
+          </Button>
+        </div>
+      )}
+      {children}
+    </div>
+  </main>
+
+  {/* Role Impersonation Search Dialog */ }
+  <Dialog open={showImpersonationDialog} onOpenChange={setShowImpersonationDialog}>
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <UserCog className="h-5 w-5 text-primary" />
+          Role Impersonation
+        </DialogTitle>
+        <DialogDescription>
+          Search and select a role to view the portal from their perspective.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="relative my-4">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search roles..."
+          value={roleSearch}
+          onChange={(e) => setRoleSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      <ScrollArea className="max-h-[300px] pr-4">
+        <div className="space-y-2">
+          {availableRoles
+            .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
+            .map((roleObj) => (
+              <Button
+                key={roleObj.name}
+                variant={userRole === roleObj.name ? "secondary" : "ghost"}
+                className="w-full justify-between h-11 capitalize"
+                onClick={() => handleRoleSwitch(roleObj.name)}
                 disabled={isSwitchingRole}
               >
-                Restore Admin Role
+                <div className="flex items-center gap-3">
+                  <Shield className={`h-4 w-4 ${userRole === roleObj.name ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span>{roleObj.name}</span>
+                </div>
+                {userRole === roleObj.name && <ShieldCheck className="h-4 w-4 text-primary" />}
+                {isSwitchingRole && <Loader2 className="h-3 w-3 animate-spin" />}
               </Button>
+            ))}
+          {availableRoles.filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase())).length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              <p className="text-sm">No roles found matching "{roleSearch}"</p>
             </div>
           )}
-          {children}
         </div>
-      </main>
-
-      {/* Role Impersonation Search Dialog */}
-      <Dialog open={showImpersonationDialog} onOpenChange={setShowImpersonationDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-primary" />
-              Role Impersonation
-            </DialogTitle>
-            <DialogDescription>
-              Search and select a role to view the portal from their perspective.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="relative my-4">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search roles..." 
-              value={roleSearch}
-              onChange={(e) => setRoleSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <ScrollArea className="max-h-[300px] pr-4">
-            <div className="space-y-2">
-              {availableRoles
-                .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
-                .map((roleObj) => (
-                  <Button
-                    key={roleObj.name}
-                    variant={userRole === roleObj.name ? "secondary" : "ghost"}
-                    className="w-full justify-between h-11 capitalize"
-                    onClick={() => handleRoleSwitch(roleObj.name)}
-                    disabled={isSwitchingRole}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Shield className={`h-4 w-4 ${userRole === roleObj.name ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span>{roleObj.name}</span>
-                    </div>
-                    {userRole === roleObj.name && <ShieldCheck className="h-4 w-4 text-primary" />}
-                    {isSwitchingRole && <Loader2 className="h-3 w-3 animate-spin" />}
-                  </Button>
-                ))}
-              {availableRoles.filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase())).length === 0 && (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p className="text-sm">No roles found matching "{roleSearch}"</p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-    </div>
+      </ScrollArea>
+    </DialogContent>
+  </Dialog>
+    </div >
   );
 };
 

@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { 
-  ArrowLeft, Navigation, MapPin, DollarSign, ListOrdered, 
+import {
+  ArrowLeft, Navigation, MapPin, DollarSign, ListOrdered,
   Upload, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, X,
   ExternalLink, Maximize2
 } from 'lucide-react';
@@ -100,9 +101,9 @@ const StopDetails: React.FC<StopDetailsProps> = ({ stop, onBack, onRefresh }) =>
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           onClick={onBack}
           className="rounded-xl border-border/50 hover:bg-muted transition-all duration-300"
         >
@@ -138,9 +139,9 @@ const StopDetails: React.FC<StopDetailsProps> = ({ stop, onBack, onRefresh }) =>
               <div className="relative group aspect-video bg-muted/20 flex items-center justify-center overflow-hidden">
                 {imageUrl ? (
                   <>
-                    <img 
-                      src={imageUrl} 
-                      alt={stop.name} 
+                    <img
+                      src={imageUrl}
+                      alt={stop.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
@@ -155,7 +156,7 @@ const StopDetails: React.FC<StopDetailsProps> = ({ stop, onBack, onRefresh }) =>
                     <p className="font-medium">No image available for this stop</p>
                   </div>
                 )}
-                
+
                 {uploading && (
                   <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-all duration-300">
                     <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
@@ -166,7 +167,7 @@ const StopDetails: React.FC<StopDetailsProps> = ({ stop, onBack, onRefresh }) =>
 
               {/* Upload Dropzone */}
               <div className="p-6 border-t border-border/50 bg-muted/10">
-                <div 
+                <div
                   onDragOver={onDragOver}
                   onDragLeave={onDragLeave}
                   onDrop={onDrop}
@@ -176,9 +177,9 @@ const StopDetails: React.FC<StopDetailsProps> = ({ stop, onBack, onRefresh }) =>
                     ${isDragging ? 'border-primary bg-primary/5 scale-[0.99]' : 'border-border/60 hover:border-primary/50 hover:bg-primary/5'}
                   `}
                 >
-                  <Input 
-                    type="file" 
-                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                  <Input
+                    type="file"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) handleFileUpload(file);
@@ -215,9 +216,9 @@ const StopDetails: React.FC<StopDetailsProps> = ({ stop, onBack, onRefresh }) =>
                   </div>
                   <span className="text-sm font-mono font-bold">{stop.latitude.toFixed(6)}, {stop.longitude.toFixed(6)}</span>
                 </div>
-                
+
                 <Separator className="opacity-50" />
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-green-500/10 rounded-lg text-green-500">

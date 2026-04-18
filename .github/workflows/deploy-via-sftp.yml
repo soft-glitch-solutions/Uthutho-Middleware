@@ -1,0 +1,61 @@
+name: Deploy via SFTP
+
+on:
+  push:
+    branches:
+      - main
+      - Shaqeel
+      - Waseem
+      - Makhi
+      - Ishmeal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the app
+        run: npm run build
+
+      - name: Set deployment directory
+        id: set-dir
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "DIR=/portal.uthutho.co.za/" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "Shaqeel" ]]; then
+            echo "DIR=/shaqeel.portal.uthutho.co.za/" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "Waseem" ]]; then
+            echo "DIR=/waseem.portal.uthutho.co.za/" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "Makhi" ]]; then
+            echo "DIR=/makhi.portal.uthutho.co.za/" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "Ishmeal" ]]; then
+            echo "DIR=/ishmeal.portal.uthutho.co.za/" >> $GITHUB_OUTPUT
+          else
+            echo "No deployment target for this branch"
+            exit 1
+          fi
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: ${{ secrets.FTP_PORT }}
+          local-dir: dist/
+          server-dir: ${{ steps.set-dir.outputs.DIR }}
+          cleanup: true

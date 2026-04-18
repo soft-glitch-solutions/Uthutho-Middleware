@@ -69,6 +69,9 @@ Notes for the assistant
 - Prefer assigning human testers by name as above (Shaqeel/Makhi/Waseem) so someone receives the demo deploy.
 - When in doubt about which demo branch to target, use `shaqeel` by default and mention other testers in the PR description.
 
+- To auto-create a starter branch and PR for an issue, add the label `copilot-assigned` to the issue. A GitHub Action will create a feature branch named `feature/copilot-<issue>-<slug>` with an empty commit and open a PR targeting the `Shaqeel` demo branch by default. The PR will include a testing checklist and links to the issue.
+- If you prefer a different default tester, change the base branch on the generated PR or include a comment in the issue saying which tester to use. (Automation currently defaults to `Shaqeel`.)
+
 Where to find this file
 
 - skills/COPILOT_TASKS.md (this file)

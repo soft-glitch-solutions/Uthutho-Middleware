@@ -80,14 +80,9 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [resettingPassword, setResettingPassword] = useState<string | null>(null);
-  const [editingUser, setEditingUser] = useState<UserWithEmail | null>(null);
-  const [editForm, setEditForm] = useState({
-    first_name: '',
-    last_name: '',
-    selected_title: '',
-    phone: '',
-    location: '',
-  });
+  const [editingUser, setEditingUser] = useState<(UserWithRole & { org_id?: string }) | null>(null);
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', selected_title: '', org_id: '' });
+
   const [savingUser, setSavingUser] = useState(false);
   const [filterRole, setFilterRole] = useState<string>('all');
   const [userStats, setUserStats] = useState({ total: 0, active: 0, totalPoints: 0 });

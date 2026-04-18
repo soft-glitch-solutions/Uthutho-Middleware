@@ -1,0 +1,51 @@
+name: Copilot: create starter PR
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    if: ${{ github.event.label.name == 'copilot-assigned' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create feature branch and empty commit
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: "${{ github.event.issue.title }}"
+        run: |
+          SLUG=$(echo "${ISSUE_TITLE}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]/-/g' | sed 's/ /-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+          BRANCH=feature/copilot-${ISSUE_NUMBER}-${SLUG}
+          git checkout -b "${BRANCH}"
+          git commit --allow-empty -m "Start work on issue #${ISSUE_NUMBER}"
+          git push origin "${BRANCH}"
+
+      - name: Create pull request (target: Shaqeel by default)
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Start work on issue #${{ github.event.issue.number }}"
+          title: "[copilot][#${{ github.event.issue.number }}] ${{ github.event.issue.title }}"
+          body: |
+            This PR was automatically created by Copilot for issue #${{ github.event.issue.number }}.
+
+            Please use the COPILOT_TASKS.md in /skills for demo deploy instructions and testing checklist.
+
+            Tester: Shaqeel (default). If you prefer another tester, change the base branch on this PR.
+          base: Shaqeel
+          labels: copilot, auto-pr

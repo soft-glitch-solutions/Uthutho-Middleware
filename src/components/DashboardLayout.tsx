@@ -263,9 +263,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
     ? `${profile.first_name} ${profile.last_name || ''}`.trim()
     : userEmail || 'User';
 
+
   // Choose navigation based on user type: org members see org nav, admins see admin nav
   const isAdmin = userRole === 'admin';
   const navigationItems = (isOrgMember && !isAdmin) ? orgNavigationItems : adminNavigationItems;
+
 
   // Check if a tab is active (including sub-items)
   const isTabActive = (navItem: any) => {
@@ -460,6 +462,60 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
         </div>
       </header>
 
+<<<<<<< HEAD
+      {/* Main content area */ }
+  <main className="flex-1 overflow-auto">
+    <div className="container mx-auto px-4 py-6">
+      {isImpersonating && (
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              Impersonation Active: Viewing portal as <span className="font-bold underline capitalize">{userRole}</span>
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-amber-700 hover:text-amber-800 hover:bg-amber-500/20"
+            onClick={() => handleRoleSwitch('admin')}
+            disabled={isSwitchingRole}
+          >
+            Restore Admin Role
+          </Button>
+        </div>
+      )}
+      {children}
+    </div>
+  </main>
+
+  {/* Role Impersonation Search Dialog */ }
+  <Dialog open={showImpersonationDialog} onOpenChange={setShowImpersonationDialog}>
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          <UserCog className="h-5 w-5 text-primary" />
+          Role Impersonation
+        </DialogTitle>
+        <DialogDescription>
+          Search and select a role to view the portal from their perspective.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="relative my-4">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search roles..."
+          value={roleSearch}
+          onChange={(e) => setRoleSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      <ScrollArea className="max-h-[300px] pr-4">
+        <div className="space-y-2">
+          {availableRoles
+            .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
+            .map((roleObj) => (
+=======
       {/* Main content area */}
       <main className="flex-1 overflow-auto">
         <div className="container mx-auto px-4 py-6">
@@ -471,6 +527,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
                   Impersonation Active: Viewing portal as <span className="font-bold underline capitalize">{userRole}</span>
                 </span>
               </div>
+>>>>>>> origin/Shaqeel
               <Button
                 variant="ghost"
                 size="sm"

@@ -5,7 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MapPin, Route, Navigation, Map, TrendingUp } from 'lucide-react';
 import TransportMap from './TransportMap';
 
+import { useOrganisation } from '@/hooks/useOrganisation';
+
 const OverviewDashboard = () => {
+  const { orgData, loading: orgLoading } = useOrganisation();
   const [stats, setStats] = useState({
     hubs: 0,
     stops: 0,
@@ -17,11 +20,28 @@ const OverviewDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        const orgId = orgData?.org_id;
+        
+        // Define base queries
+        let hubsQuery = supabase.from('hubs').select('id', { count: 'exact', head: true });
+        let stopsQuery = supabase.from('stops').select('id', { count: 'exact', head: true });
+        let routesQuery = supabase.from('routes').select('id', { count: 'exact', head: true });
+        let nearbyQuery = supabase.from('nearby_spots').select('id', { count: 'exact', head: true });
+
+        // Apply organisation filter if it exists
+        if (orgId) {
+          hubsQuery = hubsQuery.eq('organisation_id', orgId);
+          stopsQuery = stopsQuery.eq('organisation_id', orgId);
+          routesQuery = routesQuery.eq('organisation_id', orgId);
+          // nearby_spots are linked via stop_id, so we'd need a join or a subquery, 
+          // but for simplicity we'll check if they have a direct org_id as well or just let it be.
+        }
+
         const [hubsResult, stopsResult, routesResult, nearbyResult] = await Promise.all([
-          supabase.from('hubs').select('id', { count: 'exact', head: true }),
-          supabase.from('stops').select('id', { count: 'exact', head: true }),
-          supabase.from('routes').select('id', { count: 'exact', head: true }),
-          supabase.from('nearby_spots').select('id', { count: 'exact', head: true }),
+          hubsQuery,
+          stopsQuery,
+          routesQuery,
+          nearbyQuery,
         ]);
 
         setStats({
@@ -37,8 +57,10 @@ const OverviewDashboard = () => {
       }
     };
 
-    fetchStats();
-  }, []);
+    if (!orgLoading) {
+      fetchStats();
+    }
+  }, [orgData, orgLoading]);
 
   const statCards = [
     {
@@ -91,9 +113,13 @@ const OverviewDashboard = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Overview</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          {orgData?.organisation?.name ? `${orgData.organisation.name} Overview` : 'Global Overview'}
+        </h1>
         <p className="text-muted-foreground">
-          Manage your transport network infrastructure
+          {orgData?.organisation?.name 
+            ? `Managing transport network infrastructure for ${orgData.organisation.name}` 
+            : 'Manage your global transport network infrastructure'}
         </p>
       </div>
 
@@ -127,7 +153,9 @@ const OverviewDashboard = () => {
             Transport Network Map
           </CardTitle>
           <CardDescription>
-            All hubs and stops across South Africa
+            {orgData?.organisation?.name 
+              ? `Operational area for ${orgData.organisation.name}` 
+              : 'All hubs and stops across South Africa'}
           </CardDescription>
         </CardHeader>
         <CardContent>

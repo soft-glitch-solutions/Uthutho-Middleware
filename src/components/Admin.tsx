@@ -34,6 +34,7 @@ interface Profile {
 
 interface UserWithRole extends Profile {
   role?: string;
+  org_id?: string;
 }
 
 interface HubPost {
@@ -57,8 +58,23 @@ interface StopPost {
   stops: { name: string };
 }
 
+interface Organisation {
+  id: string;
+  name: string;
+  type: string;
+  region_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  radius_km: number | null;
+}
+
+import OrganisationManagement from './OrganisationManagement';
+import RolesPermissionsManagement from './RolesPermissionsManagement';
+import { Building2, ShieldCheck as RolesIcon } from 'lucide-react';
+
 const Admin = () => {
   const [profiles, setProfiles] = useState<UserWithRole[]>([]);
+  const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [hubPosts, setHubPosts] = useState<HubPost[]>([]);
   const [stopPosts, setStopPosts] = useState<StopPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +103,12 @@ const Admin = () => {
     fetchUsers();
     fetchPosts();
     fetchRoles();
+    fetchOrganisations();
+  };
+
+  const fetchOrganisations = async () => {
+    const { data } = await supabase.from('organisations').select('*').order('name');
+    if (data) setOrganisations(data);
   };
 
   const fetchUsers = async () => {
@@ -102,9 +124,15 @@ const Admin = () => {
         .from('user_roles')
         .select('user_id, role');
 
-      const rolesMap = new Map((rolesData || []).map(r => [r.user_id, r.role]));
+      // Get organization memberships
+      const { data: orgData } = await supabase
+        .from('organisation_members')
+        .select('user_id, org_id');
 
-      const profilesWithRoles: UserWithRole[] = [];
+      const rolesMap = new Map((rolesData || []).map(r => [r.user_id, r.role]));
+      const orgMap = new Map((orgData || []).map(o => [o.user_id, o.org_id]));
+
+      const profilesWithRoles: (UserWithRole & { org_id?: string })[] = [];
       if (profilesData) {
         for (const profile of profilesData) {
           let email: string | undefined;
@@ -116,6 +144,7 @@ const Admin = () => {
             ...profile,
             email,
             role: rolesMap.get(profile.id) || 'user',
+            org_id: orgMap.get(profile.id),
           });
         }
       }
@@ -176,17 +205,37 @@ const Admin = () => {
     if (!editingUser) return;
     setSavingUser(true);
     try {
-      const { error } = await supabase.from('profiles').update({
+      // Update profile info
+      const { error: profileError } = await supabase.from('profiles').update({
         first_name: editForm.first_name || null,
         last_name: editForm.last_name || null,
         selected_title: editForm.selected_title || null,
         updated_at: new Date().toISOString(),
       }).eq('id', editingUser.id);
-      if (error) throw error;
-      setProfiles(prev => prev.map(p => p.id === editingUser.id ? { ...p, ...editForm } : p));
+      
+      if (profileError) throw profileError;
+
+      // Update organisation membership
+      if (editForm.org_id !== (editingUser.org_id || '')) {
+        // Remove old membership
+        await supabase.from('organisation_members').delete().eq('user_id', editingUser.id);
+        
+        // Add new membership if selected
+        if (editForm.org_id && editForm.org_id !== 'none') {
+          const { error: orgError } = await supabase.from('organisation_members').insert({
+            user_id: editingUser.id,
+            org_id: editForm.org_id,
+            role: 'member', // Default role
+          });
+          if (orgError) throw orgError;
+        }
+      }
+
       toast({ title: "Success", description: "User profile updated." });
       setEditingUser(null);
+      fetchAll(); // Refresh everything
     } catch (error) {
+      console.error('Error updating user:', error);
       toast({ title: "Error", description: "Failed to update.", variant: "destructive" });
     } finally {
       setSavingUser(false);
@@ -267,11 +316,27 @@ const Admin = () => {
         </CardContent></Card>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
+      <Tabs defaultValue="organisations" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="organisations">Organisations</TabsTrigger>
+          <TabsTrigger value="roles">Roles & Permissions</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
         </TabsList>
+
+        {/* Organisations Tab */}
+        <TabsContent value="organisations" className="mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              <OrganisationManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Roles Tab */}
+        <TabsContent value="roles" className="mt-4">
+          <RolesPermissionsManagement />
+        </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="users" className="mt-4">
@@ -304,6 +369,7 @@ const Admin = () => {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Organisation</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Points</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -318,6 +384,18 @@ const Admin = () => {
                             : <span className="text-muted-foreground">Unnamed</span>}
                         </TableCell>
                         <TableCell className="text-sm">{profile.email || 'N/A'}</TableCell>
+                        <TableCell>
+                          {profile.org_id ? (
+                            <div className="flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-xs font-medium">
+                                {organisations.find(o => o.id === profile.org_id)?.name || 'Unknown'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">None</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Select
                             value={profile.role || 'user'}
@@ -343,7 +421,12 @@ const Admin = () => {
                           <div className="flex justify-end gap-1">
                             <Button variant="outline" size="sm" onClick={() => {
                               setEditingUser(profile);
-                              setEditForm({ first_name: profile.first_name || '', last_name: profile.last_name || '', selected_title: profile.selected_title || '' });
+                              setEditForm({ 
+                                first_name: profile.first_name || '', 
+                                last_name: profile.last_name || '', 
+                                selected_title: profile.selected_title || '',
+                                org_id: profile.org_id || ''
+                              });
                             }}>
                               <Edit className="w-3 h-3" />
                             </Button>
@@ -374,8 +457,6 @@ const Admin = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-
 
         {/* Posts Tab */}
         <TabsContent value="posts" className="mt-4">
@@ -441,6 +522,22 @@ const Admin = () => {
                 <Label className="text-xs">Title</Label>
                 <Input value={editForm.selected_title} onChange={e => setEditForm(f => ({ ...f, selected_title: e.target.value }))} />
               </div>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">Organisation</Label>
+                <Select value={editForm.org_id || 'none'} onValueChange={v => setEditForm({...editForm, org_id: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No Organisation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (Global)</SelectItem>
+                    {organisations.map(org => (
+                      <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-1">
                 <p><span className="text-muted-foreground">Email:</span> {editingUser.email || 'N/A'}</p>
                 <p><span className="text-muted-foreground">Points:</span> {editingUser.points || 0}</p>

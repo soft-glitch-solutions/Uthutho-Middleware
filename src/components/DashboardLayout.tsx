@@ -5,7 +5,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Menu, Home, Building2, MapPin, Route, Users, User, FileText, Bell, BookOpen, Navigation, Clock, MessageSquare, Navigation2, Waypoints, ClipboardList, GitBranch, Car, ShieldPlus, LogOut, Settings, ChevronDown, LayoutDashboard, BarChart3, FileBarChart, TrendingUp, Activity, AlertTriangle, Mail, MailOpen, Send, Inbox, FileSpreadsheet } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Menu, Home, Building2, MapPin, Route, Users, User, FileText, Bell, BookOpen, Navigation, Clock, MessageSquare, Navigation2, Waypoints, ClipboardList, GitBranch, Car, ShieldPlus, LogOut, Settings, ChevronDown, LayoutDashboard, BarChart3, FileBarChart, TrendingUp, Activity, AlertTriangle, Mail, MailOpen, Send, Inbox, FileSpreadsheet, ShieldCheck, UserCog, AlertCircle, Lock, Search, Shield, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -70,6 +75,7 @@ const navigationItems = [
     items: [
       { id: 'admin', label: 'Admin Dashboard', icon: ShieldPlus },
       { id: 'users', label: 'Users', icon: Users },
+      { id: 'roles-permissions', label: 'Roles & Permissions', icon: Lock },
       { id: 'notifications', label: 'Notifications', icon: Bell },
     ]
   },
@@ -98,12 +104,21 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('user');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [availableRoles, setAvailableRoles] = useState<{name: string}[]>([]);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [isSwitchingRole, setIsSwitchingRole] = useState(false);
+  const [showImpersonationDialog, setShowImpersonationDialog] = useState(false);
+  const [roleSearch, setRoleSearch] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserEmail(user.email ?? null);
+
+      const impersonationActive = localStorage.getItem('uthutho_admin_impersonation') === 'true';
+      setIsImpersonating(impersonationActive);
 
       const { data: profileData } = await supabase
         .from('profiles')
@@ -119,8 +134,67 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
         .maybeSingle();
       if (roleData) setUserRole(roleData.role);
     };
+
+    const fetchRoles = async () => {
+      const { data } = await supabase.from('roles').select('name').order('name');
+      if (data) setAvailableRoles(data);
+      else setAvailableRoles([{ name: 'admin' }, { name: 'moderator' }, { name: 'user' }, { name: 'driver' }]);
+    };
+
     fetchProfile();
+    fetchRoles();
   }, []);
+
+  const handleRoleSwitch = async (newRole: string) => {
+    setIsSwitchingRole(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update the database role
+      const { error: deleteError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (deleteError) throw deleteError;
+
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: user.id, role: newRole as any });
+
+      if (insertError) throw insertError;
+
+      // Update state and persistence
+      setUserRole(newRole);
+      setShowImpersonationDialog(false);
+      setRoleSearch('');
+      
+      if (newRole === 'admin') {
+        localStorage.removeItem('uthutho_admin_impersonation');
+        setIsImpersonating(false);
+      } else {
+        localStorage.setItem('uthutho_admin_impersonation', 'true');
+        setIsImpersonating(true);
+      }
+
+      toast({
+        title: "Role Switched",
+        description: `You are now operating as: ${newRole}`,
+      });
+      
+      // Optionally refresh page to force all RLS and component filters to update
+      // window.location.reload(); 
+    } catch (error: any) {
+      toast({
+        title: "Error switching role",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSwitchingRole(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -282,6 +356,26 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
+                
+                {(userRole === 'admin' || isImpersonating) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5">
+                      <UserCog className="mr-2 h-3.5 w-3.5" />
+                      Role Impersonation
+                    </DropdownMenuLabel>
+                    <div className="px-1 py-1">
+                      <DropdownMenuItem 
+                        onClick={() => setShowImpersonationDialog(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Shield className="h-4 w-4" />
+                        <span>Switch Role...</span>
+                      </DropdownMenuItem>
+                    </div>
+                  </>
+                )}
+                
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -296,9 +390,79 @@ const DashboardLayout = ({ children, activeTab, onTabChange }: DashboardLayoutPr
       {/* Main content area */}
       <main className="flex-1 overflow-auto">
         <div className="container mx-auto px-4 py-6">
+          {isImpersonating && (
+            <div className="mb-6 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  Impersonation Active: Viewing portal as <span className="font-bold underline capitalize">{userRole}</span>
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-amber-700 hover:text-amber-800 hover:bg-amber-500/20"
+                onClick={() => handleRoleSwitch('admin')}
+                disabled={isSwitchingRole}
+              >
+                Restore Admin Role
+              </Button>
+            </div>
+          )}
           {children}
         </div>
       </main>
+
+      {/* Role Impersonation Search Dialog */}
+      <Dialog open={showImpersonationDialog} onOpenChange={setShowImpersonationDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5 text-primary" />
+              Role Impersonation
+            </DialogTitle>
+            <DialogDescription>
+              Search and select a role to view the portal from their perspective.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="relative my-4">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search roles..." 
+              value={roleSearch}
+              onChange={(e) => setRoleSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <ScrollArea className="max-h-[300px] pr-4">
+            <div className="space-y-2">
+              {availableRoles
+                .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
+                .map((roleObj) => (
+                  <Button
+                    key={roleObj.name}
+                    variant={userRole === roleObj.name ? "secondary" : "ghost"}
+                    className="w-full justify-between h-11 capitalize"
+                    onClick={() => handleRoleSwitch(roleObj.name)}
+                    disabled={isSwitchingRole}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Shield className={`h-4 w-4 ${userRole === roleObj.name ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span>{roleObj.name}</span>
+                    </div>
+                    {userRole === roleObj.name && <ShieldCheck className="h-4 w-4 text-primary" />}
+                    {isSwitchingRole && <Loader2 className="h-3 w-3 animate-spin" />}
+                  </Button>
+                ))}
+              {availableRoles.filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase())).length === 0 && (
+                <div className="py-8 text-center text-muted-foreground">
+                  <p className="text-sm">No roles found matching "{roleSearch}"</p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

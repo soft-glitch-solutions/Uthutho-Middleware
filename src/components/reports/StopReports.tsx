@@ -196,7 +196,7 @@ const StopReports = () => {
       setFlaggedStops(new Set(JSON.parse(savedFlags)));
     }
     if (savedNotes) {
-      setFlaggedStops(new Map(JSON.parse(savedNotes)));
+      setFlagNotes(new Map(JSON.parse(savedNotes)));
     }
   };
 

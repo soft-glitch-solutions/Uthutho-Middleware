@@ -61,8 +61,10 @@ import {
   Clock,
   ArrowUpDown,
   Search,
+  UserCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import UserReports from './reports/UserReports.tsx'
 
 // Types
 interface Report {
@@ -485,9 +487,19 @@ const ReportsManagement = () => {
       </div>
 
       <Tabs defaultValue="reports" className="w-full">
-        <TabsList>
-          <TabsTrigger value="reports">Reports List</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics Dashboard</TabsTrigger>
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Reports List
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Operations Analytics
+          </TabsTrigger>
+          <TabsTrigger value="user-reports" className="flex items-center gap-2">
+            <UserCircle className="w-4 h-4" />
+            User Reports
+          </TabsTrigger>
         </TabsList>
 
         {/* Reports List Tab */}
@@ -620,7 +632,7 @@ const ReportsManagement = () => {
           </Card>
         </TabsContent>
 
-        {/* Analytics Dashboard Tab */}
+        {/* Operations Analytics Tab */}
         <TabsContent value="analytics" className="mt-6 space-y-6">
           {/* Charts Grid */}
           <div className="grid gap-6 md:grid-cols-2">
@@ -751,6 +763,11 @@ const ReportsManagement = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* User Reports Tab */}
+        <TabsContent value="user-reports" className="mt-6">
+          <UserReports />
         </TabsContent>
       </Tabs>
 

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Search, Ban, Trash2, Eye, MessageCircle, MapPin, RotateCcw, Copy, BarChart3, Cloud } from 'lucide-react';
+import { Users, Search, Ban, Trash2, Eye, MessageCircle, MapPin, RotateCcw } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -34,13 +34,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import UserReports from './reports/UserReports';
 
 interface Profile {
   id: string;
@@ -83,15 +76,12 @@ const UsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPost, setSelectedPost] = useState<(HubPost | StopPost) | null>(null);
   const [resettingPassword, setResettingPassword] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('management');
   const { toast } = useToast();
 
   useEffect(() => {
-    if (activeTab === 'management') {
-      fetchUsers();
-      fetchPosts();
-    }
-  }, [activeTab]);
+    fetchUsers();
+    fetchPosts();
+  }, []);
 
   const fetchUsers = async () => {
     try {
@@ -259,7 +249,7 @@ const UsersManagement = () => {
     }))
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  if (loading && activeTab === 'management') {
+  if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-muted rounded-lg w-64"></div>
@@ -274,219 +264,98 @@ const UsersManagement = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <Users className="w-8 h-8 text-transport-primary" />
-            Users Management Dashboard
+            Users Management
           </h1>
-          <p className="text-muted-foreground">Manage users, moderate posts, and analyze user data</p>
+          <p className="text-muted-foreground">Manage user accounts and moderate posts</p>
         </div>
       </div>
 
-      <Tabs defaultValue="management" className="space-y-6" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="management" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            User Management
-          </TabsTrigger>
-          <TabsTrigger value="cloud-data" className="flex items-center gap-2">
-            <Cloud className="w-4 h-4" />
-            Cloud Analytics
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="management" className="space-y-6">
-          {/* Users Section */}
-          <Card className="transport-card">
-            <CardHeader>
-              <CardTitle className="text-xl text-foreground flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Registered Users
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                View and manage user accounts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Search className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="transport-input flex-1"
-                  />
-                </div>
-
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Points</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredProfiles.map((profile) => (
-                        <TableRow key={profile.id}>
-                          <TableCell className="font-medium">
-                            {profile.first_name} {profile.last_name}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{profile.points || 0}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{profile.selected_title || 'Newbie Explorer'}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-xs"
-                                    disabled={resettingPassword === profile.id}
-                                  >
-                                    <RotateCcw className="w-3 h-3 mr-1" />
-                                    Reset Password
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Reset User Password</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will generate a new temporary password for {profile.first_name} {profile.last_name}. The password will be shown and copied to your clipboard.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => resetUserPassword(profile.id, profile.email || '')}
-                                      disabled={!profile.email}
-                                    >
-                                      Reset Password
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                              
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="text-xs"
-                              >
-                                <Ban className="w-3 h-3 mr-1" />
-                                Ban User
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+      <div className="grid gap-6">
+        {/* Users Section */}
+        <Card className="transport-card">
+          <CardHeader>
+            <CardTitle className="text-xl text-foreground flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Registered Users
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              View and manage user accounts
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="transport-input flex-1"
+                />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Posts Section */}
-          <Card className="transport-card">
-            <CardHeader>
-              <CardTitle className="text-xl text-foreground flex items-center gap-2">
-                <MessageCircle className="w-5 h-5" />
-                Recent Posts
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Moderate user posts from hubs and stops
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Content</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Points</TableHead>
+                      <TableHead>Title</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {allPosts.map((post) => (
-                      <TableRow key={`${post.type}-${post.id}`}>
+                    {filteredProfiles.map((profile) => (
+                      <TableRow key={profile.id}>
                         <TableCell className="font-medium">
-                          {post.profiles?.first_name} {post.profiles?.last_name}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {post.content}
+                          {profile.first_name} {profile.last_name}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {post.location}
-                          </div>
+                          <Badge variant="secondary">{profile.points || 0}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={post.type === 'hub' ? 'default' : 'secondary'}>
-                            {post.type === 'hub' ? 'Hub' : 'Stop'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(post.created_at).toLocaleDateString()}
+                          <Badge variant="outline">{profile.selected_title || 'Newbie Explorer'}</Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => setSelectedPost(post)}
+                                  className="text-xs"
+                                  disabled={resettingPassword === profile.id}
                                 >
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  View
+                                  <RotateCcw className="w-3 h-3 mr-1" />
+                                  Reset Password
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Post Details</DialogTitle>
-                                  <DialogDescription>
-                                    Posted by {post.profiles?.first_name} {post.profiles?.last_name} at {post.location}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                  <p className="text-sm text-foreground">{post.content}</p>
-                                  {post.type === 'stop' && (post as StopPost).transport_waiting_for && (
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                      Waiting for: {(post as StopPost).transport_waiting_for}
-                                    </p>
-                                  )}
-                                </div>
-                                <DialogFooter>
-                                  <Button
-                                    variant="destructive"
-                                    onClick={() => {
-                                      deletePost(post.id, post.type);
-                                      setSelectedPost(null);
-                                    }}
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Reset User Password</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will generate a new temporary password for {profile.first_name} {profile.last_name}. The password will be shown and copied to your clipboard.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => resetUserPassword(profile.id, profile.email || '')}
+                                    disabled={!profile.email}
                                   >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete Post
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
+                                    Reset Password
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                             
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => deletePost(post.id, post.type)}
+                              className="text-xs"
                             >
-                              <Trash2 className="w-3 h-3 mr-1" />
-                              Delete
+                              <Ban className="w-3 h-3 mr-1" />
+                              Ban User
                             </Button>
                           </div>
                         </TableCell>
@@ -495,14 +364,118 @@ const UsersManagement = () => {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="cloud-data">
-          <UserReports />
-        </TabsContent>
-      </Tabs>
+        {/* Posts Section */}
+        <Card className="transport-card">
+          <CardHeader>
+            <CardTitle className="text-xl text-foreground flex items-center gap-2">
+              <MessageCircle className="w-5 h-5" />
+              Recent Posts
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Moderate user posts from hubs and stops
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Content</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allPosts.map((post) => (
+                    <TableRow key={`${post.type}-${post.id}`}>
+                      <TableCell className="font-medium">
+                        {post.profiles?.first_name} {post.profiles?.last_name}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {post.content}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {post.location}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={post.type === 'hub' ? 'default' : 'secondary'}>
+                          {post.type === 'hub' ? 'Hub' : 'Stop'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedPost(post)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Post Details</DialogTitle>
+                                <DialogDescription>
+                                  Posted by {post.profiles?.first_name} {post.profiles?.last_name} at {post.location}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="py-4">
+                                <p className="text-sm text-foreground">{post.content}</p>
+                                {post.type === 'stop' && (post as StopPost).transport_waiting_for && (
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Waiting for: {(post as StopPost).transport_waiting_for}
+                                  </p>
+                                )}
+                              </div>
+                              <DialogFooter>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => {
+                                    deletePost(post.id, post.type);
+                                    setSelectedPost(null);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete Post
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deletePost(post.id, post.type)}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

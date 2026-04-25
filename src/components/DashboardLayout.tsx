@@ -66,6 +66,8 @@ const navigationItems = [
       { id: 'email-templates', label: 'Email Templates', icon: FileSpreadsheet },
       { id: 'scheduled-reports', label: 'Scheduled Reports', icon: Send },
       { id: 'report-subscriptions', label: 'Report Subscriptions', icon: Inbox },
+      { id: 'route-demand', label:'Route Demand', icon: Inbox },
+
     ]
   },
   {

@@ -41,6 +41,8 @@ import EmailLogs from '@/components/reports/EmailLogs';
 import EmailTemplates from '@/components/reports/EmailTemplates';
 import ScheduledReports from '@/components/reports/ScheduledReports';
 import ReportSubscriptions from '@/components/reports/ReportSubscriptions';
+import PassengersPerRouteReport from '@/components/reports/RouteDemandReport';
+
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -111,8 +113,8 @@ const Index = () => {
         return <StopWaitingManagement />;
 
       // Reports Section
-      case 'reports-dashboard':
-        return <ReportsManagement />;
+      // case 'reports-dashboard':
+      //   return <ReportsManagement />;
       case 'user-reports':
         return <UserReports />;
       /* 
@@ -143,6 +145,8 @@ const Index = () => {
         return <ScheduledReports />;
       case 'report-subscriptions':
         return <ReportSubscriptions />;
+      case 'route-demand':
+        return <PassengersPerRouteReport/>;
 
       // Admin Section
       case 'admin':

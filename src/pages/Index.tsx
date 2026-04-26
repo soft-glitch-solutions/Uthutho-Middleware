@@ -112,9 +112,9 @@ const Index = () => {
       case 'stop-waiting':
         return <StopWaitingManagement />;
 
-      // Reports Section
-      // case 'reports-dashboard':
-      //   return <ReportsManagement />;
+      //Reports Section
+      case 'reports-dashboard':
+        return <ReportsManagement />;
       case 'user-reports':
         return <UserReports />;
       /* 

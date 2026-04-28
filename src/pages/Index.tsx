@@ -22,6 +22,25 @@ import RequestsManagement from '@/components/RequestsManagement';
 import DriversManagement from '@/components/DriversManagement';
 import ReportsManagement from '@/components/ReportsManagement';
 import Admin from '@/components/Admin';
+import RolesPermissionsManagement from '@/components/RolesPermissionsManagement';
+import NotificationsManagement from '@/components/NotificationsManagement';
+import NotificationReports from '@/components/reports/NotificationReports';
+import OrganisationManagement from '@/components/OrganisationManagement';
+
+// Import new report components (you'll need to create these)
+/*import JourneyReports from '@/components/reports/JourneyReports';
+import DriverReports from '@/components/reports/DriverReports';
+import HubReports from '@/components/reports/HubReports';
+import RouteReports from '@/components/reports/RouteReports';
+import PerformanceReports from '@/components/reports/PerformanceReports';
+import IncidentReports from '@/components/reports/IncidentReports';
+import Analytics from '@/components/reports/Analytics';
+import EmailReports from '@/components/reports/EmailReports';*/
+import UserReports from '@/components/reports/UserReports';
+import EmailLogs from '@/components/reports/EmailLogs';
+import EmailTemplates from '@/components/reports/EmailTemplates';
+import ScheduledReports from '@/components/reports/ScheduledReports';
+import ReportSubscriptions from '@/components/reports/ReportSubscriptions';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -61,14 +80,19 @@ const Index = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      // General Section
       case 'overview':
         return <OverviewDashboard />;
       case 'hubs':
         return <HubsManagement />;
-      case 'admin':
-        return <Admin />;
       case 'stops':
         return <StopsManagement />;
+      case 'nearby-spots':
+        return <NearbySpotsManagement />;
+      case 'requests':
+        return <RequestsManagement />;
+
+      // Transnet Section
       case 'routes':
         return <RoutesManagement />;
       case 'route-stops':
@@ -79,26 +103,69 @@ const Index = () => {
         return <HubRoutesManagement />;
       case 'drivers':
         return <DriversManagement />;
-      case 'stop-waiting':
-        return <StopWaitingManagement />;
       case 'journeys':
         return <JourneysManagement />;
       case 'journey-messages':
         return <JourneyMessagesManagement />;
-      case 'nearby-spots':
-        return <NearbySpotsManagement />;
-      case 'requests':
-        return <RequestsManagement />;
+      case 'stop-waiting':
+        return <StopWaitingManagement />;
+
+      // Reports Section
+      case 'reports-dashboard':
+        return <ReportsManagement />;
+      case 'user-reports':
+        return <UserReports />;
+      /* 
+      case 'journey-reports':
+        return <JourneyReports />;
+      case 'driver-reports':
+        return <DriverReports />;
+      case 'hub-reports':
+        return <HubReports />;
+      case 'route-reports':
+        return <RouteReports />;
+      case 'performance-reports':
+        return <PerformanceReports />;
+      case 'incident-reports':
+        return <IncidentReports />;
+      case 'analytics':
+        return <Analytics />;
+      case 'email-reports':
+        return <EmailReports />;
+      */
+      case 'notification-reports':
+        return <NotificationReports />;
+      case 'email-logs':
+        return <EmailLogs />;
+      case 'email-templates':
+        return <EmailTemplates />;
+      case 'scheduled-reports':
+        return <ScheduledReports />;
+      case 'report-subscriptions':
+        return <ReportSubscriptions />;
+
+      // Admin Section
+      case 'admin':
+        return <Admin />;
+      case 'users':
+        return <UsersManagement />;
+      case 'roles-permissions':
+        return <RolesPermissionsManagement />;
+      case 'notifications':
+        return <NotificationsManagement />;
+      case 'organisations':
+        return <OrganisationManagement />;
+
+      // Content Section
       case 'blogs':
         return <BlogsManagement />;
       case 'documentation':
         return <DocumentationManagement />;
-      case 'users':
-        return <UsersManagement />;
+
+      // Profile Section
       case 'profile':
         return <ProfileManagement />;
-      case 'reports':
-        return <ReportsManagement />;
+
       default:
         return <OverviewDashboard />;
     }

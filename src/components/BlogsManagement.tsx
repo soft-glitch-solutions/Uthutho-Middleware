@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Calendar, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -29,6 +29,10 @@ const BlogsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({
+    from: '',
+    to: ''
+  });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   
@@ -160,12 +164,43 @@ const BlogsManagement = () => {
     }
   };
 
+  const clearDateFilters = () => {
+    setDateRange({ from: '', to: '' });
+  };
+
   const filteredBlogs = blogs.filter(blog => {
+    // Search filter
     const matchesSearch = blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          blog.content.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Status filter
     const matchesStatus = statusFilter === 'all' || blog.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    
+    // Date range filter - using created_at
+    let matchesDateRange = true;
+    const blogDate = new Date(blog.created_at);
+    
+    if (dateRange.from) {
+      const fromDate = new Date(dateRange.from);
+      fromDate.setHours(0, 0, 0, 0);
+      if (blogDate < fromDate) matchesDateRange = false;
+    }
+    
+    if (dateRange.to && matchesDateRange) {
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      if (blogDate > toDate) matchesDateRange = false;
+    }
+    
+    return matchesSearch && matchesStatus && matchesDateRange;
   });
+
+  // Get statistics for filtered blogs
+  const stats = {
+    total: filteredBlogs.length,
+    published: filteredBlogs.filter(b => b.status === 'published').length,
+    draft: filteredBlogs.filter(b => b.status === 'draft').length,
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Loading...</div>;
@@ -251,38 +286,101 @@ const BlogsManagement = () => {
         </Dialog>
       </div>
 
-      {/* Search and Filter */}
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl">{stats.total}</CardTitle>
+            <CardDescription>Total Blogs</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl text-green-600">{stats.published}</CardTitle>
+            <CardDescription>Published</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl text-yellow-600">{stats.draft}</CardTitle>
+            <CardDescription>Drafts</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Search & Filter</CardTitle>
+          <CardTitle>Search & Filters</CardTitle>
+          <CardDescription>Filter blogs by search, status, or date range</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="search">Search Blogs</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="search"
-                placeholder="Search by title or content..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="search">Search Blogs</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Search by title or content..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="status-filter">Filter by Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status ({blogs.length})</SelectItem>
+                  <SelectItem value="published">Published ({blogs.filter(b => b.status === 'published').length})</SelectItem>
+                  <SelectItem value="draft">Draft ({blogs.filter(b => b.status === 'draft').length})</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div>
-            <Label htmlFor="status-filter">Filter by Status</Label>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-              </SelectContent>
-            </Select>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="date-from">From Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="date-from"
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="date-to">To Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="date-to"
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            </div>
           </div>
+          
+          {(dateRange.from || dateRange.to) && (
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={clearDateFilters}>
+                <X className="h-4 w-4 mr-2" />
+                Clear Date Filters
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -295,46 +393,58 @@ const BlogsManagement = () => {
             </CardContent>
           </Card>
         ) : (
-          filteredBlogs.map((blog) => (
-            <Card key={blog.id}>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="flex items-center gap-2">
-                    {blog.title}
-                    <Badge variant={blog.status === 'published' ? 'default' : 'secondary'}>
-                      {blog.status}
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Created: {new Date(blog.created_at).toLocaleDateString()}
-                    {blog.published_at && ` • Published: ${new Date(blog.published_at).toLocaleDateString()}`}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(blog)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(blog.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-2 line-clamp-3">
-                  {blog.content.substring(0, 200)}...
-                </p>
-                {blog.tags && blog.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {blog.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {tag}
+          <>
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredBlogs.length} of {blogs.length} blogs
+              </p>
+            </div>
+            {filteredBlogs.map((blog) => (
+              <Card key={blog.id}>
+                <CardHeader className="flex flex-row items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="flex items-center gap-2 flex-wrap">
+                      {blog.title}
+                      <Badge variant={blog.status === 'published' ? 'default' : 'secondary'}>
+                        {blog.status}
                       </Badge>
-                    ))}
+                    </CardTitle>
+                    <CardDescription className="mt-2">
+                      <div>Created: {new Date(blog.created_at).toLocaleDateString()} at {new Date(blog.created_at).toLocaleTimeString()}</div>
+                      {blog.published_at && (
+                        <div>Published: {new Date(blog.published_at).toLocaleDateString()} at {new Date(blog.published_at).toLocaleTimeString()}</div>
+                      )}
+                      {blog.updated_at !== blog.created_at && (
+                        <div>Updated: {new Date(blog.updated_at).toLocaleDateString()}</div>
+                      )}
+                    </CardDescription>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(blog)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(blog.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-2 line-clamp-3">
+                    {blog.content.substring(0, 200)}...
+                  </p>
+                  {blog.tags && blog.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {blog.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </>
         )}
       </div>
     </div>

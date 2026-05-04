@@ -48,7 +48,7 @@ const navigationItems = [
     icon: BarChart3,
     items: [
       { id: 'reports-dashboard', label: 'Reports Dashboard', icon: BarChart3 },
-      { id: 'user-reports', label: 'User Report', icon: User },
+      { id: 'user-reports', label: 'User Reports', icon: User },
       { id: 'journey-reports', label: 'Journey Reports', icon: TrendingUp },
       { id: 'driver-reports', label: 'Driver Reports', icon: Car },
       { id: 'hub-reports', label: 'Hub Reports', icon: Building2 },

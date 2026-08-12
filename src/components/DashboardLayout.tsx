@@ -462,7 +462,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
         </div>
       </header>
 
-<<<<<<< HEAD
       {/* Main content area */ }
   <main className="flex-1 overflow-auto">
     <div className="container mx-auto px-4 py-6">
@@ -515,19 +514,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
           {availableRoles
             .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
             .map((roleObj) => (
-=======
-      {/* Main content area */}
-      <main className="flex-1 overflow-auto">
-        <div className="container mx-auto px-4 py-6">
-          {isImpersonating && (
-            <div className="mb-6 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  Impersonation Active: Viewing portal as <span className="font-bold underline capitalize">{userRole}</span>
-                </span>
-              </div>
->>>>>>> origin/Shaqeel
               <Button
                 variant="ghost"
                 size="sm"
@@ -535,8 +521,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
                 onClick={() => handleRoleSwitch('admin')}
                 disabled={isSwitchingRole}
               >
-                Restore Admin Role
+                <div className="flex items-center gap-3">
+                  <Shield className={`h-4 w-4 ${userRole === roleObj.name ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <span>{roleObj.name}</span>
+                </div>
+                {userRole === roleObj.name && <ShieldCheck className="h-4 w-4 text-primary" />}
+                {isSwitchingRole && <Loader2 className="h-3 w-3 animate-spin" />}
               </Button>
+            ))}
+          {availableRoles.filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase())).length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              <p className="text-sm">No roles found matching "{roleSearch}"</p>
             </div>
           )}
           {children}

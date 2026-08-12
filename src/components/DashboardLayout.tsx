@@ -515,10 +515,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
             .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
             .map((roleObj) => (
               <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 text-amber-700 hover:text-amber-800 hover:bg-amber-500/20"
-                onClick={() => handleRoleSwitch('admin')}
+                key={roleObj.name}
+                variant={userRole === roleObj.name ? "secondary" : "ghost"}
+                className="w-full justify-between h-11 capitalize"
+                onClick={() => handleRoleSwitch(roleObj.name)}
                 disabled={isSwitchingRole}
               >
                 <div className="flex items-center gap-3">
@@ -534,60 +534,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
               <p className="text-sm">No roles found matching "{roleSearch}"</p>
             </div>
           )}
-          {children}
         </div>
-      </main>
-
-      {/* Role Impersonation Search Dialog */}
-      <Dialog open={showImpersonationDialog} onOpenChange={setShowImpersonationDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-primary" />
-              Role Impersonation
-            </DialogTitle>
-            <DialogDescription>
-              Search and select a role to view the portal from their perspective.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="relative my-4">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search roles..."
-              value={roleSearch}
-              onChange={(e) => setRoleSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <ScrollArea className="max-h-[300px] pr-4">
-            <div className="space-y-2">
-              {availableRoles
-                .filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase()))
-                .map((roleObj) => (
-                  <Button
-                    key={roleObj.name}
-                    variant={userRole === roleObj.name ? "secondary" : "ghost"}
-                    className="w-full justify-between h-11 capitalize"
-                    onClick={() => handleRoleSwitch(roleObj.name)}
-                    disabled={isSwitchingRole}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Shield className={`h-4 w-4 ${userRole === roleObj.name ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span>{roleObj.name}</span>
-                    </div>
-                    {userRole === roleObj.name && <ShieldCheck className="h-4 w-4 text-primary" />}
-                    {isSwitchingRole && <Loader2 className="h-3 w-3 animate-spin" />}
-                  </Button>
-                ))}
-              {availableRoles.filter(role => role.name.toLowerCase().includes(roleSearch.toLowerCase())).length === 0 && (
-                <div className="py-8 text-center text-muted-foreground">
-                  <p className="text-sm">No roles found matching "{roleSearch}"</p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      </ScrollArea>
+    </DialogContent>
+  </Dialog>
     </div >
   );
 };

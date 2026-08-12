@@ -8,8 +8,11 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Route, Plus, Edit, Trash2, Search, GitCompare, Settings, X } from 'lucide-react';
+import { Route, Plus, Edit, Trash2, Search, GitCompare, Settings, X, Map, List } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import RouteForm from './RouteForm';
+import TransportMap from './TransportMap';
 
 interface RouteData {
   id: string;
@@ -308,74 +311,95 @@ const RoutesManagement = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search routes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 transport-input"
-            />
-          </div>
-        </div>
+      <Tabs defaultValue="map" className="w-full">
+        <TabsList>
+          <TabsTrigger value="map" className="flex items-center gap-1.5">
+            <Map className="w-4 h-4" />
+            Map Explorer
+          </TabsTrigger>
+          <TabsTrigger value="list" className="flex items-center gap-1.5">
+            <List className="w-4 h-4" />
+            List View
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Transport Type</Label>
-            <Select value={transportTypeFilter} onValueChange={setTransportTypeFilter}>
-              <SelectTrigger className="transport-input">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {uniqueTransportTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <TabsContent value="map" className="mt-4">
+          <TransportMap />
+        </TabsContent>
 
-          <div className="space-y-2">
-            <Label>Hub Association</Label>
-            <Select value={hubFilter} onValueChange={setHubFilter}>
-              <SelectTrigger className="transport-input">
-                <SelectValue placeholder="All Routes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Routes</SelectItem>
-                <SelectItem value="with_hub">With Hub</SelectItem>
-                <SelectItem value="no_hub">No Hub</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <TabsContent value="list" className="mt-4 space-y-4">
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center space-x-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search routes..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 transport-input"
+                    />
+                  </div>
+                </div>
 
-          <div className="space-y-2">
-            <Label>Sort By</Label>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="transport-input">
-                <SelectValue placeholder="Sort by..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="created_at">Newest First</SelectItem>
-                <SelectItem value="name">Name (A-Z)</SelectItem>
-                <SelectItem value="cost">Cost (Low to High)</SelectItem>
-                <SelectItem value="transport_type">Transport Type</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between pt-2 border-t">
-          <p className="text-sm text-muted-foreground">
-            Showing <span className="font-semibold text-foreground">{filteredRoutes.length}</span> of <span className="font-semibold text-foreground">{routes.length}</span> routes
-            {filteredRoutes.length !== routes.length && (
-              <span className="ml-2 text-warning">(filtered)</span>
-            )}
-          </p>
-        </div>
-      </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Transport Type</Label>
+                    <Select value={transportTypeFilter} onValueChange={setTransportTypeFilter}>
+                      <SelectTrigger className="transport-input h-9">
+                        <SelectValue placeholder="All Types" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        {uniqueTransportTypes.map(type => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Hub Association</Label>
+                    <Select value={hubFilter} onValueChange={setHubFilter}>
+                      <SelectTrigger className="transport-input h-9">
+                        <SelectValue placeholder="All Routes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Routes</SelectItem>
+                        <SelectItem value="with_hub">With Hub</SelectItem>
+                        <SelectItem value="no_hub">No Hub</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">Sort By</Label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="transport-input h-9">
+                        <SelectValue placeholder="Sort by..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="created_at">Newest First</SelectItem>
+                        <SelectItem value="name">Name (A-Z)</SelectItem>
+                        <SelectItem value="cost">Cost (Low to High)</SelectItem>
+                        <SelectItem value="transport_type">Transport Type</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between pt-2 border-t mt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Showing <span className="font-semibold text-foreground">{filteredRoutes.length}</span> of <span className="font-semibold text-foreground">{routes.length}</span> routes
+                    {filteredRoutes.length !== routes.length && (
+                      <span className="ml-2 text-warning">(filtered)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
       {showTransportTypes && (
         <Card className="transport-card border-primary/50">
@@ -516,83 +540,87 @@ const RoutesManagement = () => {
         </Card>
       )}
 
-      <div className="grid gap-4">
-        {filteredRoutes.length === 0 ? (
-          <Card className="transport-card">
-            <CardContent className="flex items-center justify-center h-32">
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No routes found matching your search.' : 'No routes available. Create your first route!'}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          filteredRoutes.map((route) => {
-            const duplicateCount = getDuplicateInfo(route);
-            return (
-            <Card key={route.id} className={`transport-card hover:shadow-xl transition-all duration-200 ${duplicateCount ? 'border-l-4 border-l-warning' : ''}`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-xl text-foreground">{route.name}</CardTitle>
-                      {duplicateCount && (
-                        <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded-full">
-                          {duplicateCount} potential duplicate{duplicateCount > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                    <CardDescription className="text-muted-foreground">
-                      {route.start_point} → {route.end_point}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="transport-badge-route">{route.transport_type}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(route)}
-                      className="transport-button-secondary"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(route.id)}
-                      className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Cost</p>
-                    <p className="font-medium">R{route.cost}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Hub Associated</p>
-                    <p className="font-medium">{route.hub_id ? 'Yes' : 'No'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Created</p>
-                    <p className="font-medium">{new Date(route.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                {route.instructions && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-muted-foreground text-sm mb-1">Special Instructions</p>
-                    <p className="text-sm">{route.instructions}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            );
-          })
-        )}
-      </div>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Route Name</TableHead>
+                <TableHead>Path</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Cost</TableHead>
+                <TableHead>Hub</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRoutes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                    {searchTerm ? 'No routes found matching your search.' : 'No routes available. Create your first route!'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRoutes.map((route) => {
+                  const duplicateCount = getDuplicateInfo(route);
+                  return (
+                    <TableRow key={route.id} className={duplicateCount ? 'bg-warning/5' : ''}>
+                      <TableCell>
+                        <div className="font-medium text-foreground">{route.name}</div>
+                        {duplicateCount && (
+                          <span className="text-[10px] bg-warning/20 text-warning px-2 py-0.5 rounded-full mt-1 inline-block">
+                            {duplicateCount} duplicate{duplicateCount > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {route.instructions && (
+                          <p className="text-xs text-muted-foreground mt-1 truncate max-w-[200px]">{route.instructions}</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          <span className="truncate max-w-[120px]">{route.start_point}</span>
+                          <span className="mx-1">→</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                          <span className="truncate max-w-[120px]">{route.end_point}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="transport-badge-route scale-90 origin-left inline-block">{route.transport_type}</span>
+                      </TableCell>
+                      <TableCell className="font-medium">R{route.cost}</TableCell>
+                      <TableCell className="text-muted-foreground">{route.hub_id ? 'Yes' : 'No'}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(route)}
+                            className="transport-button-secondary h-8 w-8 p-0"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(route.id)}
+                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8 p-0"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <RouteForm 

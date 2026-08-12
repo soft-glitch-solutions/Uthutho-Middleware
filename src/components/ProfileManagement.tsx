@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { User, Save, LogOut } from 'lucide-react';
+import { User, Save, LogOut, Building2, Shield as ShieldIcon } from 'lucide-react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useOrganisation } from '@/hooks/useOrganisation';
+import { Badge } from '@/components/ui/badge';
+import { Shield } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -23,6 +25,7 @@ interface Profile {
 }
 
 const ProfileManagement = () => {
+  const { orgData, loading: orgLoading } = useOrganisation();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,7 +138,7 @@ const ProfileManagement = () => {
     }
   };
 
-  if (loading) {
+  if (loading || orgLoading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-muted rounded-lg w-64"></div>
@@ -166,6 +169,41 @@ const ProfileManagement = () => {
       </div>
 
       <div className="grid gap-6">
+        {/* Organisation Membership */}
+        <Card className="transport-card">
+          <CardHeader>
+            <CardTitle className="text-xl text-foreground flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              Organisation Membership
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Your institutional affiliation and role
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {orgData ? (
+              <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/30 border border-border">
+                <div className="p-3 bg-primary/10 rounded-full text-primary">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">{orgData.organisation.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="capitalize text-[10px] bg-primary/5">
+                      <Shield className="w-3 h-3 mr-1" />
+                      {orgData.role.replace('_', ' ')}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground capitalize">• {orgData.organisation.type.replace('_', ' ')}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg bg-muted/30 border border-border text-center italic text-muted-foreground">
+                You are not currently linked to any organisation.
+              </div>
+            )}
+          </CardContent>
+        </Card>
         {/* Account Information */}
         <Card className="transport-card">
           <CardHeader>

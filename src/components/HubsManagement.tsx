@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { MapPin, Plus, Edit, Trash2, Search, Map, List } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -344,91 +345,96 @@ const HubsManagement = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <Tabs defaultValue="list" className="space-y-4">
+      <Tabs defaultValue="map" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="list" className="flex items-center gap-2">
-            <List className="w-4 h-4" />
-            List View
-          </TabsTrigger>
           <TabsTrigger value="map" className="flex items-center gap-2">
             <Map className="w-4 h-4" />
             Map Explorer
           </TabsTrigger>
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <List className="w-4 h-4" />
+            List View
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="list" className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search hubs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 transport-input"
-              />
-            </div>
-          </div>
+        <TabsContent value="map">
+          <HubMapExplorer />
+        </TabsContent>
 
-      <div className="grid gap-4">
-        {filteredHubs.length === 0 ? (
-          <Card className="transport-card">
-            <CardContent className="flex items-center justify-center h-32">
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No hubs found matching your search.' : 'No hubs available. Create your first hub!'}
-              </p>
+        <TabsContent value="list" className="space-y-4">
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search hubs..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 transport-input"
+                    />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        ) : (
-          filteredHubs.map((hub) => (
-            <Card key={hub.id} className="transport-card hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl text-foreground">{hub.name}</CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                      {hub.address}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(hub)}
-                      className="transport-button-secondary"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(hub.id)}
-                      className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Coordinates</p>
-                    <p className="font-medium">{hub.latitude.toFixed(4)}, {hub.longitude.toFixed(4)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Transport Type</p>
-                    <p className="font-medium">{hub.transport_type || 'Not specified'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Created</p>
-                    <p className="font-medium">{new Date(hub.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Coordinates</TableHead>
+                    <TableHead>Transport Type</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredHubs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        {searchTerm ? 'No hubs found matching your search.' : 'No hubs available. Create your first hub!'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredHubs.map((hub) => (
+                      <TableRow key={hub.id}>
+                        <TableCell className="font-medium text-foreground">{hub.name}</TableCell>
+                        <TableCell className="text-muted-foreground max-w-[200px] truncate">{hub.address}</TableCell>
+                        <TableCell className="text-muted-foreground">{hub.latitude.toFixed(4)}, {hub.longitude.toFixed(4)}</TableCell>
+                        <TableCell>{hub.transport_type || 'Not specified'}</TableCell>
+                        <TableCell className="text-muted-foreground">{new Date(hub.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditDialog(hub)}
+                              className="transport-button-secondary"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(hub.id)}
+                              className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -536,10 +542,6 @@ const HubsManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
-        </TabsContent>
-
-        <TabsContent value="map">
-          <HubMapExplorer />
         </TabsContent>
       </Tabs>
     </div>

@@ -20,27 +20,30 @@ import JourneysManagement from '@/components/JourneysManagement';
 import JourneyMessagesManagement from '@/components/JourneyMessagesManagement';
 import RequestsManagement from '@/components/RequestsManagement';
 import DriversManagement from '@/components/DriversManagement';
-import ReportsManagement from '@/components/ReportsManagement';
 import Admin from '@/components/Admin';
 import RolesPermissionsManagement from '@/components/RolesPermissionsManagement';
 import NotificationsManagement from '@/components/NotificationsManagement';
 import NotificationReports from '@/components/reports/NotificationReports';
 import OrganisationManagement from '@/components/OrganisationManagement';
-
-// Import new report components (you'll need to create these)
-/*import JourneyReports from '@/components/reports/JourneyReports';
-import DriverReports from '@/components/reports/DriverReports';
-import HubReports from '@/components/reports/HubReports';
-import RouteReports from '@/components/reports/RouteReports';
-import PerformanceReports from '@/components/reports/PerformanceReports';
-import IncidentReports from '@/components/reports/IncidentReports';
-import Analytics from '@/components/reports/Analytics';
-import EmailReports from '@/components/reports/EmailReports';*/
 import UserReports from '@/components/reports/UserReports';
 import EmailLogs from '@/components/reports/EmailLogs';
 import EmailTemplates from '@/components/reports/EmailTemplates';
 import ScheduledReports from '@/components/reports/ScheduledReports';
 import ReportSubscriptions from '@/components/reports/ReportSubscriptions';
+import StopReports from '@/components/reports/StopReports';
+// Org member pages
+import OrgOverviewDashboard from '@/components/OrgOverviewDashboard';
+import OrgUsersManagement from '@/components/OrgUsersManagement';
+import OrgReportsManagement from '@/components/OrgReportsManagement';
+import OrgApiManagement from '@/components/OrgApiManagement';
+import OrgDetailsPage from '@/components/OrgDetailsPage';
+import OrgSettingsManagement from '@/components/OrgSettingsManagement';
+import OrgAreaMap from '@/components/OrgAreaMap';
+import OrgHubsManagement from '@/components/OrgHubsManagement';
+import OrgRoutesManagement from '@/components/OrgRoutesManagement';
+
+// Admin tools
+import AdminImpersonation from '@/components/AdminImpersonation';
 
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -80,6 +83,26 @@ const Index = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      // Organisation Member Section
+      case 'org-overview':
+        return <OrgOverviewDashboard />;
+      case 'org-details':
+        return <OrgDetailsPage />;
+      case 'org-users':
+        return <OrgUsersManagement />;
+      case 'org-reports-dashboard':
+        return <OrgReportsManagement />;
+      case 'org-api':
+        return <OrgApiManagement />;
+      case 'org-settings':
+        return <OrgSettingsManagement />;
+      case 'org-area-map':
+        return <OrgAreaMap />;
+      case 'org-hubs':
+        return <OrgHubsManagement />;
+      case 'org-routes':
+        return <OrgRoutesManagement />;
+
       // General Section
       case 'overview':
         return <OverviewDashboard />;
@@ -110,29 +133,9 @@ const Index = () => {
       case 'stop-waiting':
         return <StopWaitingManagement />;
 
-      // Reports Section
-      case 'reports-dashboard':
-        return <ReportsManagement />;
+      // Reports Section 
       case 'user-reports':
         return <UserReports />;
-      /* 
-      case 'journey-reports':
-        return <JourneyReports />;
-      case 'driver-reports':
-        return <DriverReports />;
-      case 'hub-reports':
-        return <HubReports />;
-      case 'route-reports':
-        return <RouteReports />;
-      case 'performance-reports':
-        return <PerformanceReports />;
-      case 'incident-reports':
-        return <IncidentReports />;
-      case 'analytics':
-        return <Analytics />;
-      case 'email-reports':
-        return <EmailReports />;
-      */
       case 'notification-reports':
         return <NotificationReports />;
       case 'email-logs':
@@ -143,6 +146,8 @@ const Index = () => {
         return <ScheduledReports />;
       case 'report-subscriptions':
         return <ReportSubscriptions />;
+      case 'stops-reports':
+        return <StopReports />;
 
       // Admin Section
       case 'admin':
@@ -155,6 +160,8 @@ const Index = () => {
         return <NotificationsManagement />;
       case 'organisations':
         return <OrganisationManagement />;
+      case 'user-access':
+        return <AdminImpersonation />;
 
       // Content Section
       case 'blogs':

@@ -156,6 +156,10 @@ const EventHandlersTab = () => {
   const [editingHandler, setEditingHandler] = useState<any>(null);
   const [form, setForm] = useState({ name: '', event_type: 'manual', frequency: 'once', template_id: '', description: '', is_enabled: true });
 
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchText, setBatchText] = useState('');
+  const [batchProcessing, setBatchProcessing] = useState(false);
+
   const fetchData = async () => {
     const [{ data: h }, { data: t }] = await Promise.all([
       supabase.from('email_event_handlers').select('*, email_templates(name)').order('created_at', { ascending: false }),
@@ -195,14 +199,82 @@ const EventHandlersTab = () => {
     setShowForm(true);
   };
 
+  const handleBatchCreate = async () => {
+    if (!batchText.trim()) { toast.error('Enter at least one handler line'); return; }
+    setBatchProcessing(true);
+    try {
+      const lines = batchText.split('\n').map(l => l.trim()).filter(Boolean);
+      const payloads: any[] = [];
+
+      for (const line of lines) {
+        // CSV: name,event_type,frequency,template,description,is_enabled
+        const parts = line.split(',').map(p => p.trim());
+        const [name, event_type='manual', frequency='once', templateRef='', description='', is_enabled_str='true'] = parts;
+        const is_enabled = ['true','1','yes','on'].includes((is_enabled_str || '').toLowerCase());
+
+        // Resolve templateRef to id if name matches
+        let template_id: string | null = null;
+        if (templateRef) {
+          const found = templates.find(t => t.name.toLowerCase() === templateRef.toLowerCase());
+          if (found) template_id = found.id;
+          else template_id = templateRef; // assume it's an id
+        }
+
+        payloads.push({ name, event_type, frequency, template_id, description: description || null, is_enabled });
+      }
+
+      if (payloads.length === 0) { toast.error('No valid lines parsed'); setBatchProcessing(false); return; }
+
+      const { error } = await supabase.from('email_event_handlers').insert(payloads);
+      if (error) { toast.error('Failed to create handlers: ' + error.message); } else {
+        toast.success(`Created ${payloads.length} handler(s)`);
+        setShowBatchModal(false);
+        setBatchText('');
+        fetchData();
+      }
+    } catch (err: any) {
+      toast.error('Failed to parse batch input: ' + (err.message || err));
+    }
+    setBatchProcessing(false);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Event Handlers</h3>
-        <Button onClick={() => { setEditingHandler(null); setForm({ name: '', event_type: 'manual', frequency: 'once', template_id: '', description: '', is_enabled: true }); setShowForm(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> New Handler
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowBatchModal(true)}>
+            <Zap className="w-4 h-4 mr-2" /> Batch Create
+          </Button>
+          <Button onClick={() => { setEditingHandler(null); setForm({ name: '', event_type: 'manual', frequency: 'once', template_id: '', description: '', is_enabled: true }); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> New Handler
+          </Button>
+        </div>
       </div>
+
+      {/* Batch Create Modal */}
+      {showBatchModal && (
+        <Dialog open={showBatchModal} onOpenChange={setShowBatchModal}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Zap className="w-5 h-5" /> Batch Create Event Handlers</DialogTitle>
+              <DialogDescription>
+                Paste one handler per line in CSV format: <code>name,event_type,frequency,template_name_or_id,description,is_enabled</code>
+                <div className="text-sm text-muted-foreground mt-2">Example: <em>Weekly Safety Report,scheduled,weekly,Safety Template,Send weekly safety insights,true</em></div>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4">
+              <Textarea value={batchText} onChange={e => setBatchText(e.target.value)} rows={8} placeholder={`name,event_type,frequency,template_name_or_id,description,is_enabled\nWeekly Safety Report,scheduled,weekly,Safety Template,Send weekly safety insights,true`} />
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBatchModal(false)}>Cancel</Button>
+              <Button onClick={handleBatchCreate} disabled={batchProcessing}>Create {batchProcessing ? '...' : ''}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {showForm && (
         <Card>
@@ -254,7 +326,7 @@ const EventHandlersTab = () => {
               <Label>Enabled</Label>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleSave}>{editingHandler ? 'Update' : 'Create'}</Button>
+              <Button onClick={handleSave} disabled={false}>{editingHandler ? 'Update' : 'Create'}</Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
             </div>
           </CardContent>

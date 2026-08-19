@@ -66,6 +66,7 @@ const adminNavigationItems = [
       { id: 'email-templates', label: 'Email Templates', icon: FileSpreadsheet },
       { id: 'scheduled-reports', label: 'Scheduled Reports', icon: Send },
       { id: 'report-subscriptions', label: 'Report Subscriptions', icon: Inbox },
+      { id: 'stops-reports', label: 'Stop Reports', icon: MapPin },
     ]
   },
   {

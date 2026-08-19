@@ -20,7 +20,6 @@ import JourneysManagement from '@/components/JourneysManagement';
 import JourneyMessagesManagement from '@/components/JourneyMessagesManagement';
 import RequestsManagement from '@/components/RequestsManagement';
 import DriversManagement from '@/components/DriversManagement';
-import ReportsManagement from '@/components/ReportsManagement';
 import Admin from '@/components/Admin';
 import RolesPermissionsManagement from '@/components/RolesPermissionsManagement';
 import NotificationsManagement from '@/components/NotificationsManagement';
@@ -31,7 +30,7 @@ import EmailLogs from '@/components/reports/EmailLogs';
 import EmailTemplates from '@/components/reports/EmailTemplates';
 import ScheduledReports from '@/components/reports/ScheduledReports';
 import ReportSubscriptions from '@/components/reports/ReportSubscriptions';
-
+import StopReports from '@/components/reports/StopReports';
 // Org member pages
 import OrgOverviewDashboard from '@/components/OrgOverviewDashboard';
 import OrgUsersManagement from '@/components/OrgUsersManagement';
@@ -134,9 +133,7 @@ const Index = () => {
       case 'stop-waiting':
         return <StopWaitingManagement />;
 
-      // Reports Section
-      case 'reports-dashboard':
-        return <ReportsManagement />;
+      // Reports Section 
       case 'user-reports':
         return <UserReports />;
       case 'notification-reports':
@@ -149,6 +146,8 @@ const Index = () => {
         return <ScheduledReports />;
       case 'report-subscriptions':
         return <ReportSubscriptions />;
+      case 'stops-reports':
+        return <StopReports />;
 
       // Admin Section
       case 'admin':

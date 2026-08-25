@@ -48,14 +48,14 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy files to server
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
-          server: ftp.uthutho.co.za
-          port: 21
           password: ${{ secrets.FTP_PASSWORD }}
-          local_path: ./dist/*
-          remote_path: ${{ steps.set-dir.outputs.DIR }}
-          sftp_only: true
-          delete_remote_files: true
+          protocol: ftp
+          port: ${{ secrets.FTP_PORT }}
+          local-dir: dist/
+          server-dir: ${{ steps.set-dir.outputs.DIR }}
+          cleanup: true

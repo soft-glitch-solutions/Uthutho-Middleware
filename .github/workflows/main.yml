@@ -52,8 +52,8 @@ jobs:
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
           username: ${{ secrets.FTP_USERNAME }}
-          server: 51.89.20.167
-          port: 1624
+          server: ftp.uthutho.co.za
+          port: 21
           password: ${{ secrets.FTP_PASSWORD }}
           local_path: ./dist/*
           remote_path: ${{ steps.set-dir.outputs.DIR }}

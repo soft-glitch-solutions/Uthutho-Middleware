@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Menu, Home, Building2, MapPin, Route, Users, User, FileText, Bell, BookOpen, Navigation, Clock, MessageSquare, Navigation2, Waypoints, ClipboardList, GitBranch, Car, ShieldPlus, LogOut, Settings, ChevronDown, LayoutDashboard, BarChart3, FileBarChart, TrendingUp, Activity, AlertTriangle, Mail, MailOpen, Send, Inbox, FileSpreadsheet, ShieldCheck, UserCog, AlertCircle, Lock, Search, Shield, Loader2 } from 'lucide-react';
+import { Menu, Home, Building2, MapPin, Route, Users, User, FileText, Bell, BookOpen, Navigation, Clock, MessageSquare, Navigation2, Waypoints, ClipboardList, GitBranch, Car, ShieldPlus, LogOut, Settings, ChevronDown, LayoutDashboard, BarChart3, FileBarChart, TrendingUp, Activity, AlertTriangle, Mail, MailOpen, Send, Inbox, FileSpreadsheet, ShieldCheck, UserCog, AlertCircle, Lock, Search, Shield, Loader2, Code2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +19,8 @@ interface DashboardLayoutProps {
   onTabChange: (tab: string) => void;
 }
 
-// Navigation structure
-const navigationItems = [
+// Admin/general navigation
+const adminNavigationItems = [
   {
     id: 'general',
     label: 'General',
@@ -66,6 +66,7 @@ const navigationItems = [
       { id: 'email-templates', label: 'Email Templates', icon: FileSpreadsheet },
       { id: 'scheduled-reports', label: 'Scheduled Reports', icon: Send },
       { id: 'report-subscriptions', label: 'Report Subscriptions', icon: Inbox },
+      { id: 'stops-reports', label: 'Stop Reports', icon: MapPin },
     ]
   },
   {
@@ -79,6 +80,7 @@ const navigationItems = [
       { id: 'roles-permissions', label: 'Roles & Permissions', icon: Lock },
       { id: 'organisations', label: 'Organisations', icon: Building2 },
       { id: 'notifications', label: 'Notifications', icon: Bell },
+      { id: 'user-access', label: 'User Access Viewer', icon: UserCog },
     ]
   },
   {
@@ -100,8 +102,57 @@ const navigationItems = [
   }
 ];
 
+// Organisation member navigation
+const orgNavigationItems = [
+  {
+    id: 'org-general',
+    label: 'Organisation',
+    icon: Building2,
+    items: [
+      { id: 'org-overview', label: 'Overview', icon: Home },
+      { id: 'org-details', label: 'Details', icon: Building2 },
+      { id: 'org-area-map', label: 'Area Map', icon: MapPin },
+    ]
+  },
+  {
+    id: 'org-management',
+    label: 'Management',
+    icon: Users,
+    items: [
+      { id: 'org-users', label: 'Users', icon: Users },
+      { id: 'org-hubs', label: 'Hubs', icon: Building2 },
+      { id: 'org-routes', label: 'Routes', icon: Route },
+    ]
+  },
+  {
+    id: 'org-reports',
+    label: 'Reports',
+    icon: BarChart3,
+    items: [
+      { id: 'org-reports-dashboard', label: 'Reports & Analytics', icon: BarChart3 },
+    ]
+  },
+  {
+    id: 'org-settings',
+    label: 'Settings',
+    icon: Settings,
+    items: [
+      { id: 'org-settings', label: 'Feature Settings', icon: Settings },
+      { id: 'org-api', label: 'API & Integration', icon: Code2 },
+    ]
+  },
+  {
+    id: 'profile',
+    label: 'Profile',
+    icon: User,
+    items: [
+      { id: 'profile', label: 'My Profile', icon: User },
+    ]
+  }
+];
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, onTabChange }) => {
   const { orgData } = useOrganisation();
+  const isOrgMember = !!orgData?.organisation;
   const [profile, setProfile] = useState<{ first_name: string | null; last_name: string | null; avatar_url: string | null } | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('user');
@@ -175,6 +226,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
 
       if (newRole === 'admin') {
         localStorage.removeItem('uthutho_admin_impersonation');
+        localStorage.removeItem('uthutho_impersonate_org_id');
+        localStorage.removeItem('uthutho_impersonate_org_role');
         setIsImpersonating(false);
       } else {
         localStorage.setItem('uthutho_admin_impersonation', 'true');
@@ -186,8 +239,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
         description: `You are now operating as: ${newRole}`,
       });
 
-      // Optionally refresh page to force all RLS and component filters to update
-      // window.location.reload(); 
+      // Force a reload to ensure hooks like useOrganisation refetch correctly
+      window.location.reload(); 
     } catch (error: any) {
       toast({
         title: "Error switching role",
@@ -210,6 +263,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
   const displayName = profile?.first_name
     ? `${profile.first_name} ${profile.last_name || ''}`.trim()
     : userEmail || 'User';
+
+
+  // Choose navigation based on user type: org members see org nav, admins see admin nav
+  const isAdmin = userRole === 'admin';
+  const navigationItems = (isOrgMember && !isAdmin) ? orgNavigationItems : adminNavigationItems;
+
 
   // Check if a tab is active (including sub-items)
   const isTabActive = (navItem: any) => {
@@ -245,7 +304,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
                       <ScrollArea className="h-full">
                         <div className="p-4 space-y-4">
                           {navigationItems
-                            .filter(item => !item.adminOnly || userRole === 'admin')
+                            .filter((item: any) => !item.adminOnly || userRole === 'admin')
                             .map((item) => (
                               <div key={item.id} className="space-y-2">
                                 <div className="flex items-center gap-2 px-2">
@@ -281,7 +340,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
                   </h1>
                   <p className="text-xs text-muted-foreground">Transport Management System</p>
                 </div>
-                
+
                 {orgData?.organisation && (
                   <div className="hidden lg:flex items-center gap-3 border-l pl-6 ml-4">
                     <div className="p-1.5 bg-primary/10 rounded-lg">
@@ -300,7 +359,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, activeTab, 
               {/* Desktop Navigation Dropdowns */}
               <nav className="hidden lg:flex items-center space-x-1">
                 {navigationItems
-                  .filter(item => !item.adminOnly || userRole === 'admin')
+                  .filter((item: any) => !item.adminOnly || userRole === 'admin')
                   .map((item) => (
                     <DropdownMenu
                       key={item.id}

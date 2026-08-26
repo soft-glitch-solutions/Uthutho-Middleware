@@ -32,6 +32,27 @@ export const useOrganisation = () => {
           return;
         }
 
+        const impersonateOrgId = localStorage.getItem('uthutho_impersonate_org_id');
+        const isImpersonatingAdmin = localStorage.getItem('uthutho_admin_impersonation') === 'true';
+
+        if (isImpersonatingAdmin && impersonateOrgId) {
+          // Mock the org data based on the impersonated org ID
+          const { data: orgData } = await supabase
+            .from('organisations')
+            .select('*')
+            .eq('id', impersonateOrgId)
+            .single();
+            
+          if (orgData) {
+            setOrgData({
+              org_id: orgData.id,
+              role: localStorage.getItem('uthutho_impersonate_org_role') || 'member',
+              organisation: orgData as unknown as Organisation
+            });
+            return;
+          }
+        }
+
         const { data, error } = await supabase
           .from('organisation_members')
           .select(`

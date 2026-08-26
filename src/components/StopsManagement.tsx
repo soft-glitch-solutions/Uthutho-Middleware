@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Navigation, Plus, Edit, Trash2, Search, Map, List } from 'lucide-react';
+import { Navigation, Plus, Edit, Trash2, Search, Map, List, Eye } from 'lucide-react';
 import MapSelector from './MapSelector';
 import StopMapExplorer from './StopMapExplorer';
+import StopDetails from './StopDetails';
 
 interface Stop {
   id: string;
@@ -30,6 +31,7 @@ const StopsManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStop, setSelectedStop] = useState<Stop | null>(null);
+  const [viewingStopDetails, setViewingStopDetails] = useState<Stop | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -213,6 +215,16 @@ const StopsManagement = () => {
           ))}
         </div>
       </div>
+    );
+  }
+
+  if (viewingStopDetails) {
+    return (
+      <StopDetails 
+        stop={viewingStopDetails} 
+        onBack={() => setViewingStopDetails(null)} 
+        onRefresh={fetchStops}
+      />
     );
   }
 
@@ -412,8 +424,18 @@ const StopsManagement = () => {
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => setViewingStopDetails(stop)}
+                              className="transport-button-secondary"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() => openEditDialog(stop)}
                               className="transport-button-secondary"
+                              title="Edit Stop"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -422,6 +444,7 @@ const StopsManagement = () => {
                               size="sm"
                               onClick={() => handleDelete(stop.id)}
                               className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                              title="Delete Stop"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

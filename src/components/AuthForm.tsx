@@ -25,7 +25,7 @@ const AuthForm = () => {
       if (error) {
         toast({ title: "Authentication Error", description: error.message, variant: "destructive" });
       } else {
-        toast({ title: "Welcome back!", description: "Successfully signed in to Uthutho Portal." });
+        toast({ title: "Welcome back G!", description: "Successfully signed in to Uthutho Portal." });
       }
     } catch {
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });

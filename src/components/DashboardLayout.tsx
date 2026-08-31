@@ -53,7 +53,7 @@ const adminNavigationItems = [
     label: 'Reports',
     icon: BarChart3,
     items: [
-      { id: 'reports-dashboard', label: 'Reports Dashboard', icon: BarChart3 },
+      { id: 'user-reports', label: 'User Reports', icon: Users },
       { id: 'journey-reports', label: 'Journey Reports', icon: TrendingUp },
       { id: 'driver-reports', label: 'Driver Reports', icon: Car },
       { id: 'hub-reports', label: 'Hub Reports', icon: Building2 },
@@ -67,6 +67,7 @@ const adminNavigationItems = [
       { id: 'scheduled-reports', label: 'Scheduled Reports', icon: Send },
       { id: 'report-subscriptions', label: 'Report Subscriptions', icon: Inbox },
       { id: 'stops-reports', label: 'Stop Reports', icon: MapPin },
+      { id: 'transport-availability-reports', label: 'Transport Availability Reports', icon: Navigation },
     ]
   },
   {

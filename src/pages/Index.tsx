@@ -41,6 +41,7 @@ import OrgSettingsManagement from '@/components/OrgSettingsManagement';
 import OrgAreaMap from '@/components/OrgAreaMap';
 import OrgHubsManagement from '@/components/OrgHubsManagement';
 import OrgRoutesManagement from '@/components/OrgRoutesManagement';
+import TransportAvailabilityReports from '@/components/reports/TransportAvailibilty';
 
 // Admin tools
 import AdminImpersonation from '@/components/AdminImpersonation';
@@ -148,6 +149,8 @@ const Index = () => {
         return <ReportSubscriptions />;
       case 'stops-reports':
         return <StopReports />;
+      case 'transport-availability-reports':
+        return <TransportAvailabilityReports />;
 
       // Admin Section
       case 'admin':
